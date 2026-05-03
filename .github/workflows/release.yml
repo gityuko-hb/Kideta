@@ -1,0 +1,82 @@
+name: Release to Crates.io
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check_version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version matches tag
+        id: check_version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          
+          TAG_VERSION="${TAG#v}"
+          
+          # Trích xuất phiên bản từ khối [workspace.package]
+          CARGO_VERSION=$(awk '/\[workspace\.package\]/{flag=1} flag && /^version/ {gsub(/[" ]/, "", $3); print $3; exit}' Cargo.toml)
+          
+          echo "Tag version: $TAG_VERSION"
+          echo "Workspace version: $CARGO_VERSION"
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch! Cargo.toml workspace version is $CARGO_VERSION but tag is $TAG"
+            exit 1
+          fi
+          echo "✓ Versions match"
+
+  publish:
+    name: Publish Crates
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Note on publishing order:
+      # If crates depend on each other, you NEED to publish the core crate first.
+      # For example: if kideta-index uses kideta-core, then core must be published first.
+      
+      - name: Publish kideta-core
+        run: cargo publish -p kideta-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish kideta-storage
+        run: cargo publish -p kideta-storage
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish kideta-index
+        run: cargo publish -p kideta-index
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: [validate, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: Release ${{ needs.validate.outputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
