@@ -8,7 +8,10 @@ use std::arch::x86_64::*;
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn l2_squared_f32(a: &[f32], b: &[f32]) -> f32 {
+pub unsafe fn l2_squared_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     unsafe {
         let len = a.len();
         let chunks = len / 16;
@@ -35,7 +38,10 @@ pub unsafe fn l2_squared_f32(a: &[f32], b: &[f32]) -> f32 {
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
+pub unsafe fn dot_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     unsafe {
         let len = a.len();
         let chunks = len / 16;
@@ -60,7 +66,10 @@ pub unsafe fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn cosine_similarity_f32(a: &[f32], b: &[f32]) -> f32 {
+pub unsafe fn cosine_similarity_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     unsafe {
         let len = a.len();
         let chunks = len / 16;
@@ -87,14 +96,21 @@ pub unsafe fn cosine_similarity_f32(a: &[f32], b: &[f32]) -> f32 {
         }
 
         let denom = norm_a.sqrt() * norm_b.sqrt();
-        if denom == 0.0 { 0.0 } else { dot / denom }
+        if denom == 0.0 {
+            0.0
+        } else {
+            dot / denom
+        }
     }
 }
 
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn cosine_f32(a: &[f32], b: &[f32]) -> f32 {
+pub unsafe fn cosine_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     unsafe { 1.0 - cosine_similarity_f32(a, b) }
 }
 
@@ -103,7 +119,10 @@ pub unsafe fn cosine_f32(a: &[f32], b: &[f32]) -> f32 {
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "avx512f")]
-pub unsafe fn manhattan_f32(a: &[f32], b: &[f32]) -> f32 {
+pub unsafe fn manhattan_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     unsafe {
         let len = a.len();
         let chunks = len / 16;
