@@ -16,4 +16,5 @@ pub mod utils {
     pub mod hash;
     pub mod heap;
     pub mod sha256;
+    pub mod slab;
 }
