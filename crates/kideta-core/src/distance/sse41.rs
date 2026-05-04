@@ -22,6 +22,12 @@ unsafe fn hsum_ps_128(v: __m128) -> f32 {
 
 // ── L2 squared ───────────────────────────────────────────────────────────────
 
+/// Computes the squared L2 distance between two f32 vectors using SSE4.1.
+///
+/// # Safety
+/// This function requires the SSE4.1 target feature to be available.
+/// The caller must ensure that the CPU supports SSE4.1 before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "sse4.1")]
@@ -52,6 +58,12 @@ pub unsafe fn l2_squared_f32(
 
 // ── Dot product ───────────────────────────────────────────────────────────────
 
+/// Computes the dot product of two f32 vectors using SSE4.1.
+///
+/// # Safety
+/// This function requires the SSE4.1 target feature to be available.
+/// The caller must ensure that the CPU supports SSE4.1 before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "sse4.1")]
@@ -80,6 +92,12 @@ pub unsafe fn dot_f32(
 
 // ── Cosine similarity ─────────────────────────────────────────────────────────
 
+/// Computes the cosine similarity between two f32 vectors using SSE4.1.
+///
+/// # Safety
+/// This function requires the SSE4.1 target feature to be available.
+/// The caller must ensure that the CPU supports SSE4.1 before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "sse4.1")]
@@ -121,6 +139,12 @@ pub unsafe fn cosine_similarity_f32(
     }
 }
 
+/// Computes the cosine distance (1 - cosine similarity) between two f32 vectors using SSE4.1.
+///
+/// # Safety
+/// This function requires the SSE4.1 target feature to be available.
+/// The caller must ensure that the CPU supports SSE4.1 before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "sse4.1")]
@@ -133,6 +157,12 @@ pub unsafe fn cosine_f32(
 
 // ── Manhattan (L1) ───────────────────────────────────────────────────────────
 
+/// Computes the Manhattan (L1) distance between two f32 vectors using SSE4.1.
+///
+/// # Safety
+/// This function requires the SSE4.1 target feature to be available.
+/// The caller must ensure that the CPU supports SSE4.1 before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 #[target_feature(enable = "sse4.1")]

@@ -1,4 +1,4 @@
-//! ARM NEON distance kernels — 4 × f32 per iteration but for aarch64.
+//! ARM NEON distance kernels — 4 × f32 per iteration.
 //!
 //! All functions are `unsafe` and require the `neon` target feature.
 //! Call only after `std::arch::is_aarch64_feature_detected!("neon")` returns true,
@@ -21,11 +21,16 @@ unsafe fn hsum_f32x4(v: float32x4_t) -> f32 {
     vgetq_lane_f32(quad, 0)
 }
 
-// ── L2 squared (1.12) ────────────────────────────────────────────────────────
+// ── L2 squared ────────────────────────────────────────────────────────
 
-/// Squared Euclidean distance: Σ(aᵢ − bᵢ)²
+/// Squared Euclidean distance: Σ(aᵢ − bᵢ)².
 ///
-/// Processes 4 × f32 per iteration using `vld1q_f32` / `vsubq_f32` / `vmlaq_f32`.
+/// Processes 4 × f32 per iteration using `vld1q_f32`, `vsubq_f32`, and `vmlaq_f32`.
+///
+/// # Safety
+/// This function requires the `neon` target feature to be available.
+/// The caller must ensure the CPU supports NEON before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "aarch64")]
 #[inline]
 #[target_feature(enable = "neon")]
@@ -54,7 +59,12 @@ pub unsafe fn l2_squared_f32(
 
 // ── Dot product (1.14) ────────────────────────────────────────────────────────
 
-/// Inner product: Σ aᵢ·bᵢ
+/// Inner product: Σ aᵢ·bᵢ.
+///
+/// # Safety
+/// This function requires the `neon` target feature to be available.
+/// The caller must ensure the CPU supports NEON before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "aarch64")]
 #[inline]
 #[target_feature(enable = "neon")]
@@ -83,6 +93,11 @@ pub unsafe fn dot_f32(
 
 /// Cosine similarity = dot(a,b) / (‖a‖·‖b‖), returns ∈ [−1, 1].
 /// Returns 0.0 when either vector is a zero-vector.
+///
+/// # Safety
+/// This function requires the `neon` target feature to be available.
+/// The caller must ensure the CPU supports NEON before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "aarch64")]
 #[inline]
 #[target_feature(enable = "neon")]
@@ -123,6 +138,11 @@ pub unsafe fn cosine_similarity_f32(
 }
 
 /// Cosine distance = 1 − cosine_similarity (∈ [0, 2]).
+///
+/// # Safety
+/// This function requires the `neon` target feature to be available.
+/// The caller must ensure the CPU supports NEON before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "aarch64")]
 #[inline]
 #[target_feature(enable = "neon")]
@@ -135,6 +155,12 @@ pub unsafe fn cosine_f32(
 
 // ── Manhattan (L1) ───────────────────────────────────────────────────────────
 
+/// Computes the Manhattan (L1) distance between two f32 vectors using NEON.
+///
+/// # Safety
+/// This function requires the `neon` target feature to be available.
+/// The caller must ensure the CPU supports NEON before calling.
+/// Additionally, both slices must have the same length.
 #[cfg(target_arch = "aarch64")]
 #[inline]
 #[target_feature(enable = "neon")]

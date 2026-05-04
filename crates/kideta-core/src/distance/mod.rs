@@ -239,13 +239,16 @@ pub fn get_distance_fn(metric: Metric) -> DistanceFn {
             // Hamming operates on binary vectors, not f32
             // Return a wrapper that converts f32 to binary
             hamming_f32_wrapper
-        }
+        },
     }
 }
 
 /// Wrapper to adapt Hamming distance for f32 vectors
 /// Treats positive values as 1, non-positive as 0
-fn hamming_f32_wrapper(a: &[f32], b: &[f32]) -> f32 {
+fn hamming_f32_wrapper(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     hamming::hamming_distance_f32(a, b) as f32
 }
 
@@ -258,7 +261,10 @@ pub use hamming::{
 // ── L2 (Euclidean) ───────────────────────────────────────────────────────────
 
 #[inline]
-pub fn l2_squared_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn l2_squared_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     #[cfg(target_arch = "x86_64")]
     {
         if detection::has_avx512f() {
@@ -285,24 +291,36 @@ pub fn l2_squared_f32(a: &[f32], b: &[f32]) -> f32 {
 }
 
 #[inline]
-pub fn l2_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn l2_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     l2_squared_f32(a, b).sqrt()
 }
 
 #[inline]
-pub fn l2_squared_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn l2_squared_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     scalar::l2_squared_f64(a, b)
 }
 
 #[inline]
-pub fn l2_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn l2_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     l2_squared_f64(a, b).sqrt()
 }
 
 // ── Dot product ──────────────────────────────────────────────────────────────
 
 #[inline]
-pub fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn dot_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     #[cfg(target_arch = "x86_64")]
     {
         if detection::has_avx512f() {
@@ -334,19 +352,28 @@ pub fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
 /// consistent with L2 and cosine distance conventions.
 /// Use this as the distance function for dot-product similarity search.
 #[inline]
-pub fn dot_distance_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn dot_distance_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     -dot_f32(a, b)
 }
 
 #[inline]
-pub fn dot_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn dot_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     scalar::dot_f64(a, b)
 }
 
 // ── Cosine ────────────────────────────────────────────────────────────────────
 
 #[inline]
-pub fn cosine_similarity_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn cosine_similarity_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     #[cfg(target_arch = "x86_64")]
     {
         if detection::has_avx512f() {
@@ -373,24 +400,36 @@ pub fn cosine_similarity_f32(a: &[f32], b: &[f32]) -> f32 {
 }
 
 #[inline]
-pub fn cosine_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn cosine_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     1.0 - cosine_similarity_f32(a, b)
 }
 
 #[inline]
-pub fn cosine_similarity_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn cosine_similarity_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     scalar::cosine_similarity_f64(a, b)
 }
 
 #[inline]
-pub fn cosine_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn cosine_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     scalar::cosine_f64(a, b)
 }
 
 // ── Manhattan (L1) (1.18) ─────────────────────────────────────────────────────
 
 #[inline]
-pub fn manhattan_f32(a: &[f32], b: &[f32]) -> f32 {
+pub fn manhattan_f32(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     #[cfg(target_arch = "x86_64")]
     {
         if detection::has_avx512f() {
@@ -413,7 +452,10 @@ pub fn manhattan_f32(a: &[f32], b: &[f32]) -> f32 {
 }
 
 #[inline]
-pub fn manhattan_f64(a: &[f64], b: &[f64]) -> f64 {
+pub fn manhattan_f64(
+    a: &[f64],
+    b: &[f64],
+) -> f64 {
     scalar::manhattan_f64(a, b)
 }
 
@@ -421,30 +463,45 @@ pub fn manhattan_f64(a: &[f64], b: &[f64]) -> f64 {
 
 /// Jaccard similarity for packed-bit `u8` slices: |A∩B| / |A∪B| ∈ [0, 1].
 #[inline]
-pub fn jaccard_u8(a: &[u8], b: &[u8]) -> f32 {
+pub fn jaccard_u8(
+    a: &[u8],
+    b: &[u8],
+) -> f32 {
     scalar::jaccard_u8(a, b)
 }
 
 /// Jaccard distance = 1 − Jaccard similarity.
 #[inline]
-pub fn jaccard_distance_u8(a: &[u8], b: &[u8]) -> f32 {
+pub fn jaccard_distance_u8(
+    a: &[u8],
+    b: &[u8],
+) -> f32 {
     scalar::jaccard_distance_u8(a, b)
 }
 
 // ── Hamming ───────────────────────────────────────────────────────────────────
 
 #[inline]
-pub fn hamming_u8(a: &[u8], b: &[u8]) -> u64 {
+pub fn hamming_u8(
+    a: &[u8],
+    b: &[u8],
+) -> u64 {
     scalar::hamming_u8(a, b)
 }
 
 #[inline]
-pub fn hamming_packed_u8(a: &[u8], b: &[u8]) -> u64 {
+pub fn hamming_packed_u8(
+    a: &[u8],
+    b: &[u8],
+) -> u64 {
     scalar::hamming_packed_u8(a, b)
 }
 
 #[inline]
-pub fn hamming_f32(a: &[f32], b: &[f32]) -> u64 {
+pub fn hamming_f32(
+    a: &[f32],
+    b: &[f32],
+) -> u64 {
     scalar::hamming_f32(a, b)
 }
 
@@ -453,7 +510,10 @@ pub fn hamming_f32(a: &[f32], b: &[f32]) -> u64 {
 /// Safe version of L2 distance that returns Result instead of panicking
 ///
 /// Validates input before computing distance
-pub fn l2_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
+pub fn l2_f32_safe(
+    a: &[f32],
+    b: &[f32],
+) -> Result<f32, DistanceError> {
     if a.len() != b.len() {
         return Err(DistanceError::DimensionMismatch {
             expected: a.len(),
@@ -484,7 +544,10 @@ pub fn l2_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
 }
 
 /// Safe version of cosine similarity that returns Result
-pub fn cosine_similarity_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
+pub fn cosine_similarity_f32_safe(
+    a: &[f32],
+    b: &[f32],
+) -> Result<f32, DistanceError> {
     if a.len() != b.len() {
         return Err(DistanceError::DimensionMismatch {
             expected: a.len(),
@@ -498,7 +561,10 @@ pub fn cosine_similarity_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceE
 }
 
 /// Safe version of dot product that returns Result
-pub fn dot_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
+pub fn dot_f32_safe(
+    a: &[f32],
+    b: &[f32],
+) -> Result<f32, DistanceError> {
     if a.len() != b.len() {
         return Err(DistanceError::DimensionMismatch {
             expected: a.len(),
@@ -512,7 +578,10 @@ pub fn dot_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
 }
 
 /// Safe version of Manhattan distance that returns Result
-pub fn manhattan_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
+pub fn manhattan_f32_safe(
+    a: &[f32],
+    b: &[f32],
+) -> Result<f32, DistanceError> {
     if a.len() != b.len() {
         return Err(DistanceError::DimensionMismatch {
             expected: a.len(),
@@ -523,4 +592,174 @@ pub fn manhattan_f32_safe(a: &[f32], b: &[f32]) -> Result<f32, DistanceError> {
         return Err(DistanceError::EmptyVector);
     }
     Ok(manhattan_f32(a, b))
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vec_a() -> Vec<f32> {
+        vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 1.0,
+        ]
+    }
+    fn vec_b() -> Vec<f32> {
+        vec![
+            8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0,
+        ]
+    }
+
+    #[test]
+    fn dispatch_l2_matches_scalar() {
+        let a = vec_a();
+        let b = vec_b();
+        let expected = scalar::l2_squared_f32(&a, &b);
+        assert!(
+            (l2_squared_f32(&a, &b) - expected).abs() < 1e-3,
+            "dispatch={} scalar={}",
+            l2_squared_f32(&a, &b),
+            expected
+        );
+    }
+
+    #[test]
+    fn dispatch_dot_matches_scalar() {
+        let a = vec_a();
+        let b = vec_b();
+        let expected = scalar::dot_f32(&a, &b);
+        assert!(
+            (dot_f32(&a, &b) - expected).abs() < 1e-3,
+            "dispatch={} scalar={}",
+            dot_f32(&a, &b),
+            expected
+        );
+    }
+
+    #[test]
+    fn dispatch_cosine_matches_scalar() {
+        let a = vec_a();
+        let b = vec_b();
+        let expected = scalar::cosine_similarity_f32(&a, &b);
+        assert!(
+            (cosine_similarity_f32(&a, &b) - expected).abs() < 1e-5,
+            "dispatch={} scalar={}",
+            cosine_similarity_f32(&a, &b),
+            expected
+        );
+    }
+
+    #[test]
+    fn get_distance_fn_l2() {
+        let f = get_distance_fn(Metric::L2);
+        let a = [3.0_f32, 0.0];
+        let b = [0.0_f32, 4.0];
+        assert!((f(&a, &b) - 5.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn get_distance_fn_dot() {
+        let f = get_distance_fn(Metric::Dot);
+        let a = [1.0_f32, 2.0, 3.0];
+        let b = [4.0_f32, 5.0, 6.0];
+        assert!((f(&a, &b) - (-32.0)).abs() < 1e-5);
+    }
+
+    #[test]
+    fn get_distance_fn_cosine_identical() {
+        let f = get_distance_fn(Metric::Cosine);
+        let a = [1.0_f32, 2.0, 3.0];
+        assert!(f(&a, &a).abs() < 1e-5);
+    }
+
+    #[test]
+    fn get_distance_fn_manhattan() {
+        let f = get_distance_fn(Metric::Manhattan);
+        let a = [1.0_f32, 2.0, 3.0];
+        let b = [4.0_f32, 6.0, 3.0];
+        // |1-4| + |2-6| + |3-3| = 3 + 4 + 0 = 7
+        assert!((f(&a, &b) - 7.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn best_simd_non_empty() {
+        let s = detection::best_simd();
+        assert!(!s.is_empty());
+        println!("SIMD tier: {s}");
+    }
+
+    #[test]
+    fn manhattan_known() {
+        let a = [1.0_f32, 2.0, 3.0];
+        let b = [4.0_f32, 6.0, 3.0];
+        assert!((manhattan_f32(&a, &b) - 7.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn jaccard_identical() {
+        let a = [0xFF_u8, 0xAA];
+        assert!((jaccard_u8(&a, &a) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn jaccard_disjoint() {
+        let a = [0xF0_u8];
+        let b = [0x0F_u8];
+        assert_eq!(jaccard_u8(&a, &b), 0.0);
+        assert!((jaccard_distance_u8(&a, &b) - 1.0).abs() < 1e-6);
+    }
+}
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::collection::vec as sv;
+    use proptest::prelude::*;
+
+    fn approx_eq(
+        actual: f32,
+        expected: f32,
+        rel_epsilon: f32,
+    ) -> bool {
+        if actual.is_nan() && expected.is_nan() {
+            true
+        } else if actual.is_infinite() && expected.is_infinite() {
+            actual == expected
+        } else {
+            let diff = (actual - expected).abs();
+            let scale = actual.abs().max(expected.abs()).max(1.0);
+            diff <= rel_epsilon * scale
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn l2_simd_matches_scalar(a in sv(0.1f32..100.0, 128..=128), b in sv(0.1f32..100.0, 128..=128)) {
+            let expected = scalar::l2_squared_f32(&a, &b);
+            let actual = l2_squared_f32(&a, &b);
+            prop_assert!(approx_eq(actual, expected, 1e-3), "l2: dispatch={} scalar={}", actual, expected);
+        }
+
+        #[test]
+        fn dot_simd_matches_scalar(a in sv(0.1f32..10.0, 128..=128), b in sv(0.1f32..10.0, 128..=128)) {
+            let expected = scalar::dot_f32(&a, &b);
+            let actual = dot_f32(&a, &b);
+            prop_assert!(approx_eq(actual, expected, 1e-3), "dot: dispatch={} scalar={}", actual, expected);
+        }
+
+        #[test]
+        fn cosine_simd_matches_scalar(a in sv(0.1f32..10.0, 128..=128), b in sv(0.1f32..10.0, 128..=128)) {
+            let expected = scalar::cosine_similarity_f32(&a, &b);
+            let actual = cosine_similarity_f32(&a, &b);
+            prop_assert!(approx_eq(actual, expected, 1e-3), "cosine: dispatch={} scalar={}", actual, expected);
+        }
+
+        #[test]
+        fn manhattan_simd_matches_scalar(a in sv(0.1f32..100.0, 128..=128), b in sv(0.1f32..100.0, 128..=128)) {
+            let expected = scalar::manhattan_f32(&a, &b);
+            let actual = manhattan_f32(&a, &b);
+            prop_assert!(approx_eq(actual, expected, 1e-3), "manhattan: dispatch={} scalar={}", actual, expected);
+        }
+    }
 }

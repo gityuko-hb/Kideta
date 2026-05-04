@@ -35,10 +35,16 @@
 /// let b = vec![0b1111_1111, 0b1111_1111];
 /// assert_eq!(hamming_distance(&a, &b), 8); // Only second byte differs
 /// ```
-pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
+pub fn hamming_distance(
+    a: &[u8],
+    b: &[u8],
+) -> u32 {
     assert_eq!(a.len(), b.len(), "Binary vectors must have the same length");
 
-    a.iter().zip(b.iter()).map(|(x, y)| (x ^ y).count_ones()).sum()
+    a.iter()
+        .zip(b.iter())
+        .map(|(x, y)| (x ^ y).count_ones())
+        .sum()
 }
 
 /// Compute Hamming distance with validation (safe version)
@@ -65,7 +71,10 @@ pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
 ///     Err(e) => eprintln!("Error: {}", e),
 /// }
 /// ```
-pub fn hamming_distance_safe(a: &[u8], b: &[u8]) -> Result<u32, DistanceError> {
+pub fn hamming_distance_safe(
+    a: &[u8],
+    b: &[u8],
+) -> Result<u32, DistanceError> {
     if a.len() != b.len() {
         return Err(DistanceError::DimensionMismatch {
             expected: a.len(),
@@ -88,17 +97,24 @@ pub enum DistanceError {
 }
 
 impl std::fmt::Display for DistanceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         match self {
             DistanceError::DimensionMismatch { expected, actual } => {
-                write!(f, "Dimension mismatch: expected {}, got {}", expected, actual)
-            }
+                write!(
+                    f,
+                    "Dimension mismatch: expected {}, got {}",
+                    expected, actual
+                )
+            },
             DistanceError::InvalidValue { index, reason } => {
                 write!(f, "Invalid value at index {}: {}", index, reason)
-            }
+            },
             DistanceError::EmptyVector => {
                 write!(f, "Empty vector")
-            }
+            },
         }
     }
 }
@@ -113,7 +129,10 @@ impl std::error::Error for DistanceError {}
 /// This function uses SSE4.2 intrinsics. The caller must ensure SSE4.2 is available.
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse4.2")]
-pub unsafe fn hamming_distance_sse42(a: &[u8], b: &[u8]) -> u32 {
+pub unsafe fn hamming_distance_sse42(
+    a: &[u8],
+    b: &[u8],
+) -> u32 {
     use std::arch::x86_64::*;
 
     assert_eq!(a.len(), b.len());
@@ -150,7 +169,10 @@ pub unsafe fn hamming_distance_sse42(a: &[u8], b: &[u8]) -> u32 {
 /// This function uses AVX2 intrinsics. The caller must ensure AVX2 is available.
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
-pub unsafe fn hamming_distance_avx2(a: &[u8], b: &[u8]) -> u32 {
+pub unsafe fn hamming_distance_avx2(
+    a: &[u8],
+    b: &[u8],
+) -> u32 {
     use std::arch::x86_64::*;
 
     assert_eq!(a.len(), b.len());
@@ -224,14 +246,25 @@ pub fn get_hamming_fn() -> fn(&[u8], &[u8]) -> u32 {
 ///
 /// # Panics
 /// Panics if `a` and `b` have different lengths
-pub fn hamming_distance_f32(a: &[f32], b: &[f32]) -> u32 {
+pub fn hamming_distance_f32(
+    a: &[f32],
+    b: &[f32],
+) -> u32 {
     assert_eq!(a.len(), b.len());
 
     a.iter()
         .zip(b.iter())
         .map(|(x, y)| {
-            let x_bit = if *x > 0.0 { 1u8 } else { 0u8 };
-            let y_bit = if *y > 0.0 { 1u8 } else { 0u8 };
+            let x_bit = if *x > 0.0 {
+                1u8
+            } else {
+                0u8
+            };
+            let y_bit = if *y > 0.0 {
+                1u8
+            } else {
+                0u8
+            };
             (x_bit ^ y_bit) as u32
         })
         .sum()
@@ -301,7 +334,10 @@ mod tests {
         let result = hamming_distance_safe(&a, &b);
         assert!(result.is_err());
         match result.unwrap_err() {
-            DistanceError::DimensionMismatch { expected: 1, actual: 2 } => {}
+            DistanceError::DimensionMismatch {
+                expected: 1,
+                actual: 2,
+            } => {},
             _ => panic!("Wrong error type"),
         }
     }
@@ -328,7 +364,9 @@ mod tests {
             .map(|i| {
                 let len = 100 + i; // Various lengths
                 let a: Vec<u8> = (0..len).map(|j| ((i + j) % 256) as u8).collect();
-                let b: Vec<u8> = (0..len).map(|j| ((i * 2 + j) % 256) as u8).collect();
+                let b: Vec<u8> = (0..len)
+                    .map(|j| ((i * 2 + j) % 256) as u8)
+                    .collect();
                 (a, b)
             })
             .collect();
