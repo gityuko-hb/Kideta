@@ -7,6 +7,7 @@ pub mod record;
 pub mod schema;
 pub mod types;
 
+pub mod distance;
 pub mod utils {
     pub mod base64;
     pub mod bitset;
