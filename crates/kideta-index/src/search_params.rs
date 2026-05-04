@@ -22,3 +22,8 @@ impl FlatSearchParams {
         Self { k: self.k * 2 }
     }
 }
+
+#[derive(Debug, Clone)]
+pub enum SearchParams {
+    Flat(FlatSearchParams),
+}
