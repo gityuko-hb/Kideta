@@ -37,6 +37,8 @@
 //! assert_eq!(hamming_packed_u8(&[0xFF_u8], &[0x00_u8]), 8);
 //! ```
 
+// ── Dot product ──────────────────────────────────────────────────────────────
+
 #[inline]
 pub fn l2_squared_f32(
     a: &[f32],
