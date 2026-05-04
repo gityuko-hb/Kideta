@@ -11,4 +11,5 @@ pub mod utils {
     pub mod bitset;
     pub mod heap;
     pub mod hash;
+    pub mod crc32c;
 }
