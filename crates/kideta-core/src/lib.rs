@@ -1,3 +1,4 @@
+pub mod collection;
 pub mod enums;
 pub mod error;
 pub mod metric;
