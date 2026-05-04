@@ -6,3 +6,7 @@ pub mod payload;
 pub mod record;
 pub mod schema;
 pub mod types;
+
+pub mod utils {
+    pub mod bitset;
+}
