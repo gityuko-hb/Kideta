@@ -6,3 +6,12 @@ pub mod payload;
 pub mod record;
 pub mod schema;
 pub mod types;
+
+pub mod utils {
+    pub mod base64;
+    pub mod bitset;
+    pub mod crc32c;
+    pub mod hash;
+    pub mod heap;
+    pub mod sha256;
+}
