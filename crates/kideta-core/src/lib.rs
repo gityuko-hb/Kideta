@@ -18,3 +18,5 @@ pub mod utils {
     pub mod sha256;
     pub mod slab;
 }
+
+pub mod mmap;
