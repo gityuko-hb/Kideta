@@ -11,3 +11,9 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+kideta-core = { path = "../kideta-core" }
+rayon = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
