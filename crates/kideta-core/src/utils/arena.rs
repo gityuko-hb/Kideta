@@ -102,7 +102,11 @@ impl Arena {
         let layout = Layout::from_size_align(capacity.max(1), 16).unwrap();
         // SAFETY: layout has non-zero size and valid alignment.
         let buf = unsafe { NonNull::new(alloc(layout)).expect("allocation failed") };
-        Self { buf, layout, offset: 0 }
+        Self {
+            buf,
+            layout,
+            offset: 0,
+        }
     }
 
     /// Total capacity in bytes.
@@ -127,7 +131,11 @@ impl Arena {
     ///
     /// Returns `None` if there is not enough space.
     #[inline]
-    pub fn alloc_raw(&mut self, size: usize, align: usize) -> Option<NonNull<u8>> {
+    pub fn alloc_raw(
+        &mut self,
+        size: usize,
+        align: usize,
+    ) -> Option<NonNull<u8>> {
         let aligned = self.offset.next_multiple_of(align);
         let end = aligned.checked_add(size)?;
         if end > self.layout.size() {
@@ -143,7 +151,10 @@ impl Arena {
     ///
     /// Returns `None` if there is not enough space.
     #[inline]
-    pub fn alloc<T>(&mut self, value: T) -> Option<&mut T> {
+    pub fn alloc<T>(
+        &mut self,
+        value: T,
+    ) -> Option<&mut T> {
         let ptr = self.alloc_raw(std::mem::size_of::<T>(), std::mem::align_of::<T>())?;
         // SAFETY: `ptr` is properly aligned for `T` and has enough space for
         // one `T`. The arena ensures this pointer is unique.
@@ -154,7 +165,11 @@ impl Arena {
 
     /// Allocate a slice of `len` copies of `T` (uninitialized).
     #[inline]
-    pub fn alloc_slice<T: Copy>(&mut self, len: usize, fill: T) -> Option<&mut [T]> {
+    pub fn alloc_slice<T: Copy>(
+        &mut self,
+        len: usize,
+        fill: T,
+    ) -> Option<&mut [T]> {
         let size = std::mem::size_of::<T>().checked_mul(len)?;
         let ptr = self.alloc_raw(size, std::mem::align_of::<T>())?;
         // SAFETY: `ptr` is properly aligned for `T`, and `size` bytes are

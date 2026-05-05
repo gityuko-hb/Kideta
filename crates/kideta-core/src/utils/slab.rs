@@ -89,7 +89,9 @@ impl<T> SlabAllocator<T> {
     /// Create a pool that can hold at most `capacity` objects.
     pub fn new(capacity: usize) -> Self {
         Self {
-            slots: (0..capacity).map(|_| MaybeUninit::uninit()).collect(),
+            slots: (0..capacity)
+                .map(|_| MaybeUninit::uninit())
+                .collect(),
             free: (0..capacity).collect(),
             live: 0,
             capacity,
@@ -117,7 +119,10 @@ impl<T> SlabAllocator<T> {
     /// Acquire a slot and initialize it with `value`.
     ///
     /// Returns the slot index, or `None` if the pool is full.
-    pub fn acquire(&mut self, value: T) -> Option<usize> {
+    pub fn acquire(
+        &mut self,
+        value: T,
+    ) -> Option<usize> {
         let idx = self.free.pop()?;
         self.slots[idx].write(value);
         self.live += 1;
@@ -132,7 +137,10 @@ impl<T> SlabAllocator<T> {
     /// 2. The slot at `idx` is currently initialized (i.e., it has been returned
     ///    by `acquire` and not yet `release`d).
     #[inline]
-    pub unsafe fn get(&self, idx: usize) -> &T {
+    pub unsafe fn get(
+        &self,
+        idx: usize,
+    ) -> &T {
         // SAFETY: The requirements are guaranteed by the caller.
         unsafe { self.slots[idx].assume_init_ref() }
     }
@@ -145,7 +153,10 @@ impl<T> SlabAllocator<T> {
     /// 2. The slot at `idx` is currently initialized.
     /// 3. No other references to this slot exist.
     #[inline]
-    pub unsafe fn get_mut(&mut self, idx: usize) -> &mut T {
+    pub unsafe fn get_mut(
+        &mut self,
+        idx: usize,
+    ) -> &mut T {
         // SAFETY: The requirements are guaranteed by the caller.
         unsafe { self.slots[idx].assume_init_mut() }
     }
@@ -157,7 +168,10 @@ impl<T> SlabAllocator<T> {
     /// 1. `idx` is within the capacity of the slab.
     /// 2. The slot at `idx` is currently initialized.
     /// 3. The slot must not be accessed again after this call.
-    pub unsafe fn release(&mut self, idx: usize) {
+    pub unsafe fn release(
+        &mut self,
+        idx: usize,
+    ) {
         // SAFETY: We drop the initialized value in the slot.
         unsafe {
             self.slots[idx].assume_init_drop();
@@ -173,8 +187,8 @@ impl<T> SlabAllocator<T> {
         for &fi in &self.free {
             on_free[fi] = true;
         }
-        for i in 0..self.capacity {
-            if !on_free[i] {
+        for (i, &is_free) in on_free.iter().enumerate().take(self.capacity) {
+            if !is_free {
                 // SAFETY: We know slot i is live (not in the free list) and
                 // thus contains an initialized value.
                 unsafe {
