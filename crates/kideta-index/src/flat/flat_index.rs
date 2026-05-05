@@ -125,6 +125,75 @@ impl FlatIndex {
         Ok(())
     }
 
+    pub fn search(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
+        todo!()
+    }
+
+    fn search_serial(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
+        todo!()
+    }
+
+    fn search_parallel(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
+        todo!()
+    }
+
+    pub fn search_with_filter<F: Fn(VectorId, &Payload) -> bool + Send + Sync>(
+        &self,
+        query: &[f32],
+        k: usize,
+        filter: Option<&F>,
+    ) -> Vec<ScoredVectorId> {
+        todo!()
+    }
+
+    pub fn len(&self) -> usize {
+        self.ids.len() - self.deleted.len()
+    }
+
+    pub fn total_len(&self) -> usize {
+        self.ids.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn dimension(&self) -> usize {
+        self.dimension
+    }
+
+    pub fn metric(&self) -> DistanceMetric {
+        self.metric
+    }
+
+    pub fn distance_fn(&self) -> fn(&[f32], &[f32]) -> f32 {
+        self.distance_fn
+    }
+
+    pub fn vectors(&self) -> &Vec<f32> {
+        &self.vectors
+    }
+
+    pub fn ids(&self) -> &Vec<VectorId> {
+        &self.ids
+    }
+
+    pub fn size_bytes(&self) -> usize {
+        let vector_bytes = self.vectors.capacity() * std::mem::size_of::<f32>();
+        let id_bytes = self.ids.capacity() * std::mem::size_of::<VectorId>();
+        let payload_bytes = self.payloads.capacity() * std::mem::size_of::<Payload>();
+        let deleted_bytes = self.deleted.serialize().len();
+
+        vector_bytes + id_bytes + payload_bytes + deleted_bytes
+    }
+
+    pub fn deleted_count(&self) -> usize {
+        self.deleted.len()
+    }
+
+    pub fn deleted(&self) -> &RoaringBitmap {
+        &self.deleted
+    }
 }
 
 impl VectorIndex for FlatIndex {

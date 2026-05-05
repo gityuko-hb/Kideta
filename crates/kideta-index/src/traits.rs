@@ -3,19 +3,6 @@
 //! This trait defines the operations that all index implementations
 //! (Flat, HNSW, IVF, Vamana, etc.) must support, allowing the
 //! query planner to use them polymorphically.
-//!
-//! # Mmap Integration
-//!
-//! The [`VectorIndex::load_mmap`] method provides a way to load an index
-//! from memory-mapped files on disk (vectors + graph adjacency) without
-//! copying all data into RAM. The [`VectorIndex::set_vector_store`] method
-//! allows replacing an in-memory vector store with an mmap'd store after
-//! index construction, freeing RAM while keeping the index searchable.
-//!
-//! These work together with:
-//! - [`kideta_core::vector_store::VectorStore`] — abstract vector access
-//! - `kideta_storage::vector_storage::MmapVectorStorage` — mmap'd vector file
-//! - [`crate::hnsw::MmapLayer`] — mmap'd HNSW graph adjacency
 
 use std::cmp::Ordering;
 
@@ -131,7 +118,11 @@ pub trait VectorIndex: Send + Sync {
         query: &[f32],
         k: usize,
         params: &SearchParams,
-    ) -> Vec<ScoredVectorId>;
+    ) -> Vec<ScoredVectorId> {
+        match params {
+            SearchParams::Flat(p) => self.search(query, p.k)
+        }
+    }
 
     fn search_with_params_and_filter(
         &self,
@@ -139,7 +130,11 @@ pub trait VectorIndex: Send + Sync {
         k: usize,
         params: &SearchParams,
         filter: Option<&FilterFn>,
-    ) -> Vec<ScoredVectorId>;
+    ) -> Vec<ScoredVectorId> {
+        match params {
+            _ => self.search_with_filter(query, k, filter)
+        }
+    }
 
     fn insert(
         &mut self,
