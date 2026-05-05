@@ -132,7 +132,7 @@ impl Drop for MmapMut {
 
 #[cfg(test)]
 mod tests {
-    use crate::mmap::{Mmap, MmapMut, MmapOptions, Result};
+    use crate::mmap::{Mmap, MmapOptions};
     use std::fs::OpenOptions;
     use std::io::Write;
     use tempfile::NamedTempFile;

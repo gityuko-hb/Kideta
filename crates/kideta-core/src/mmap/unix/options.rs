@@ -61,6 +61,15 @@ impl MmapOptions {
         self
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The provided `file` is a valid file descriptor open for reading.
+    /// - The file offset and length do not exceed the file's bounds, otherwise
+    ///   `SIGBUS` may occur on access.
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is read-only).
     pub unsafe fn mmap_file(
         self,
         file: &File,
@@ -70,6 +79,13 @@ impl MmapOptions {
         unsafe { self.do_mmap(fd) }
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is read-only).
+    /// - `len` is non-zero (returns `Err(MmapError::ZeroSize)` otherwise).
     pub unsafe fn mmap_anonymous(self) -> Result<Mmap> {
         self.validate()?;
         if self.len == 0 {
@@ -78,6 +94,16 @@ impl MmapOptions {
         unsafe { self.do_mmap(-1) }
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The provided `file` is a valid file descriptor open for reading and
+    ///   writing.
+    /// - The file offset and length do not exceed the file's bounds, otherwise
+    ///   `SIGBUS` may occur on access.
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is mutable).
     pub unsafe fn mmap_file_mut(
         self,
         file: &File,
@@ -87,6 +113,13 @@ impl MmapOptions {
         unsafe { self.do_mmap_mut(fd) }
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is mutable).
+    /// - `len` is non-zero (returns `Err(MmapError::ZeroSize)` otherwise).
     pub unsafe fn mmap_anonymous_mut(self) -> Result<MmapMut> {
         self.validate()?;
         if self.len == 0 {
@@ -98,7 +131,7 @@ impl MmapOptions {
     fn validate(&self) -> Result<()> {
         if self.offset > 0 {
             let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as u64 };
-            if self.offset % page_size != 0 {
+            if !self.offset.is_multiple_of(page_size) {
                 return Err(MmapError::Map {
                     reason: format!(
                         "offset ({}) must be a multiple of page size ({})",
@@ -123,13 +156,7 @@ impl MmapOptions {
         let map_flags = if fd < 0 {
             libc::MAP_ANONYMOUS | libc::MAP_PRIVATE
         } else {
-            self.flags.bits()
-                | libc::MAP_SHARED
-                | (if self.flags.is_empty() {
-                    0
-                } else {
-                    0
-                })
+            self.flags.bits() | libc::MAP_SHARED
         };
         let prot = self.prot.bits();
 

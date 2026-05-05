@@ -108,7 +108,7 @@ impl Mmap {
             return Ok(());
         }
         let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize };
-        let base_ptr = self.ptr.as_ptr() as *mut libc::c_void;
+        let base_ptr = self.ptr.as_ptr();
         let end_offset = offset + len;
         let page_start = (offset / page_size) * page_size;
         let aligned_addr = unsafe { base_ptr.byte_offset(page_start as isize) };
@@ -132,7 +132,7 @@ impl Mmap {
             return Ok(());
         }
         let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize };
-        let base_ptr = self.ptr.as_ptr() as *mut libc::c_void;
+        let base_ptr = self.ptr.as_ptr();
         let end_offset = offset + len;
         let page_start = (offset / page_size) * page_size;
         let aligned_addr = unsafe { base_ptr.byte_offset(page_start as isize) };
@@ -397,7 +397,7 @@ mod tests {
     fn mmap_file_write_and_flush() {
         let (_file, path) = test_file();
         let mut file = open_test_file(&path);
-        let mut mapping = unsafe { MmapOptions::new(4096).mmap_file(&file).unwrap() };
+        let mapping = unsafe { MmapOptions::new(4096).mmap_file(&file).unwrap() };
         let slice = unsafe { mapping.as_mut_slice() };
         slice[0] = 0xCD;
         slice[1] = 0xEF;
