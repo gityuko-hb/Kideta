@@ -12,6 +12,7 @@ categories.workspace = true
 
 [dependencies]
 kideta-core = { path = "../kideta-core" }
+tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

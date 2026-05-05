@@ -116,11 +116,11 @@ pub trait VectorIndex: Send + Sync {
     fn search_with_params(
         &self,
         query: &[f32],
-        k: usize,
+        _k: usize,
         params: &SearchParams,
     ) -> Vec<ScoredVectorId> {
         match params {
-            SearchParams::Flat(p) => self.search(query, p.k)
+            SearchParams::Flat(p) => self.search(query, p.k),
         }
     }
 
@@ -128,12 +128,10 @@ pub trait VectorIndex: Send + Sync {
         &self,
         query: &[f32],
         k: usize,
-        params: &SearchParams,
+        _params: &SearchParams,
         filter: Option<&FilterFn>,
     ) -> Vec<ScoredVectorId> {
-        match params {
-            _ => self.search_with_filter(query, k, filter)
-        }
+        self.search_with_filter(query, k, filter)
     }
 
     fn insert(

@@ -32,7 +32,7 @@
 //! than ANN indexes due to zero index overhead. It's also the reference
 //! implementation used to measure ANN recall accuracy.
 
-use kideta_core::distance::{get_distance_fn, prefetch_nta, Metric};
+use kideta_core::distance::{Metric, get_distance_fn, prefetch_nta};
 use kideta_core::metric::DistanceMetric;
 use kideta_core::payload::Payload;
 use kideta_core::types::VectorId;
@@ -45,7 +45,10 @@ use crate::traits::{FilterFn, IndexError, ScoredVectorId, VectorIndex};
 const PARALLEL_THRESHOLD: usize = 10_000; // 10 * 1000 vectors 
 
 /// Wrapper to adapt Hamming distance for f32 vectors
-fn hamming_distance_wrapper(a: &[f32], b: &[f32]) -> f32 {
+fn hamming_distance_wrapper(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     kideta_core::distance::hamming_distance_f32(a, b) as f32
 }
 
@@ -60,7 +63,10 @@ pub struct FlatIndex {
 }
 
 impl FlatIndex {
-    pub fn new(dimension: usize, metric: DistanceMetric) -> Self {
+    pub fn new(
+        dimension: usize,
+        metric: DistanceMetric,
+    ) -> Self {
         let distance_fn = match metric {
             DistanceMetric::Cosine => get_distance_fn(Metric::Cosine),
             DistanceMetric::L2 => get_distance_fn(Metric::L2),
@@ -68,7 +74,7 @@ impl FlatIndex {
             DistanceMetric::Hamming => {
                 // Hamming operates on binary vectors - use wrapper
                 hamming_distance_wrapper
-            }
+            },
         };
 
         Self {
@@ -83,12 +89,18 @@ impl FlatIndex {
     }
 
     #[inline]
-    fn vector_offset(&self, local_id: usize) -> usize {
+    fn vector_offset(
+        &self,
+        local_id: usize,
+    ) -> usize {
         local_id * self.dimension
     }
 
     #[inline]
-    pub fn get_vector(&self, local_id: usize) -> Option<&[f32]> {
+    pub fn get_vector(
+        &self,
+        local_id: usize,
+    ) -> Option<&[f32]> {
         if local_id >= self.len() {
             return None;
         }
@@ -99,24 +111,29 @@ impl FlatIndex {
     pub fn insert(
         &mut self,
         id: VectorId,
-        vector: &[f32], payload: Payload
+        vector: &[f32],
+        payload: Payload,
     ) -> Result<(), IndexError> {
         if vector.len() != self.dimension {
             return Err(IndexError::DimensionMismatch {
                 expected: self.dimension,
                 got: vector.len(),
-            })
+            });
         }
 
         self.vectors.extend_from_slice(vector);
         self.ids.push(id);
         self.payloads.push(payload);
-        
+
         Ok(())
     }
 
-    pub fn delete(&mut self, id: VectorId) -> Result<(), IndexError> {
-        let local_id = self.ids
+    pub fn delete(
+        &mut self,
+        id: VectorId,
+    ) -> Result<(), IndexError> {
+        let local_id = self
+            .ids
             .iter()
             .position(|&x| x == id)
             .ok_or(IndexError::NotFound(id))?;
@@ -125,16 +142,70 @@ impl FlatIndex {
         Ok(())
     }
 
-    pub fn search(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
-        todo!()
+    pub fn search(
+        &self,
+        query: &[f32],
+        k: usize,
+    ) -> Vec<ScoredVectorId> {
+        if query.len() != self.dimension {
+            return Vec::new();
+        }
+
+        if self.is_empty() {
+            return Vec::new();
+        }
+
+        if self.total_len() > PARALLEL_THRESHOLD {
+            return self.search_parallel(query, k);
+        }
+
+        self.search_serial(query, k)
     }
 
-    fn search_serial(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
-        todo!()
+    fn search_serial(
+        &self,
+        query: &[f32],
+        k: usize,
+    ) -> Vec<ScoredVectorId> {
+        let distance_fn = self.distance_fn;
+        let dim = self.dimension;
+        let total_len = self.total_len();
+
+        let mut results = BoundedMaxHeap::new(k);
+
+        for i in 0..total_len {
+            if self.deleted.contains(i as u32) {
+                continue;
+            }
+
+            // Prefetch vector 4 positions ahead
+            let pf = i + 4;
+            if pf < total_len {
+                let pf_off = pf * dim;
+                prefetch_nta(&self.vectors[pf_off] as *const f32);
+            }
+
+            let offset = i * dim;
+            let vector = &self.vectors[offset..offset + dim];
+            let score = distance_fn(query, vector);
+            results.push(ScoredVectorId::new(self.ids[i], score));
+        }
+
+        let mut sorted = results.into_sorted_vec();
+        sorted.reverse();
+        sorted
     }
 
-    fn search_parallel(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
-        todo!()
+    fn search_parallel(
+        &self,
+        query: &[f32],
+        k: usize,
+    ) -> Vec<ScoredVectorId> {
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                crate::flat::parallel::parallel_search_async(self, query, k).await
+            })
+        })
     }
 
     pub fn search_with_filter<F: Fn(VectorId, &Payload) -> bool + Send + Sync>(
@@ -143,7 +214,48 @@ impl FlatIndex {
         k: usize,
         filter: Option<&F>,
     ) -> Vec<ScoredVectorId> {
-        todo!()
+        if query.len() != self.dimension {
+            return Vec::new();
+        }
+
+        if self.total_len() == 0 {
+            return Vec::new();
+        }
+
+        let distance_fn = self.distance_fn;
+        let dim = self.dimension;
+        let total_len = self.total_len();
+
+        let mut results = BoundedMaxHeap::new(k);
+
+        for i in 0..total_len {
+            if self.deleted.contains(i as u32) {
+                continue;
+            }
+
+            // Prefetch vector 4 positions ahead
+            let pf = i + 4;
+            if pf < total_len {
+                let pf_off = pf * dim;
+                prefetch_nta(&self.vectors[pf_off] as *const f32);
+            }
+
+            let offset = i * dim;
+            let vector = &self.vectors[offset..offset + dim];
+
+            if let Some(f) = filter
+                && !f(self.ids[i], &self.payloads[i])
+            {
+                continue;
+            }
+
+            let score = distance_fn(query, vector);
+            results.push(ScoredVectorId::new(self.ids[i], score));
+        }
+
+        let mut sorted = results.into_sorted_vec();
+        sorted.reverse();
+        sorted
     }
 
     pub fn len(&self) -> usize {
@@ -196,14 +308,29 @@ impl FlatIndex {
     }
 }
 
+impl std::fmt::Debug for FlatIndex {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        f.debug_struct("FlatIndex")
+            .field("dimension", &self.dimension)
+            .field("total_vectors", &self.total_len())
+            .field("deleted_count", &self.deleted_count())
+            .field("active_vectors", &self.len())
+            .field("metric", &self.metric)
+            .field("size_bytes", &self.size_bytes())
+            .finish()
+    }
+}
+
 impl VectorIndex for FlatIndex {
     fn search(
         &self,
         query: &[f32],
         k: usize,
-    ) -> Vec<ScoredVectorId>
-    {
-        todo!()
+    ) -> Vec<ScoredVectorId> {
+        FlatIndex::search(self, query, k)
     }
 
     fn search_with_filter(
@@ -211,28 +338,19 @@ impl VectorIndex for FlatIndex {
         query: &[f32],
         k: usize,
         filter: Option<&FilterFn>,
-    ) -> Vec<ScoredVectorId>
-    {
-        todo!()
-    }
-
-    fn search_with_params(
-        &self,
-        query: &[f32],
-        k: usize,
-        params: &crate::search_params::SearchParams,
     ) -> Vec<ScoredVectorId> {
-        todo!()
-    }
-    
-    fn search_with_params_and_filter(
-        &self,
-        query: &[f32],
-        k: usize,
-        params: &crate::search_params::SearchParams,
-        filter: Option<&FilterFn>,
-    ) -> Vec<ScoredVectorId> {
-        todo!()
+        match filter {
+            Some(f) => {
+                let filter_fn = |id: VectorId, payload: &Payload| f(id, payload);
+                FlatIndex::search_with_filter(self, query, k, Some(&filter_fn))
+            },
+            None => FlatIndex::search_with_filter(
+                self,
+                query,
+                k,
+                None::<&fn(VectorId, &Payload) -> bool>,
+            ),
+        }
     }
 
     fn insert(
@@ -240,17 +358,15 @@ impl VectorIndex for FlatIndex {
         id: VectorId,
         vector: &[f32],
         payload: Payload,
-    ) -> Result<(), IndexError>
-    {
-        todo!()
+    ) -> Result<(), IndexError> {
+        FlatIndex::insert(self, id, vector, payload)
     }
 
     fn delete(
         &mut self,
         id: VectorId,
-    ) -> Result<(), IndexError>
-    {
-        todo!()
+    ) -> Result<(), IndexError> {
+        FlatIndex::delete(self, id)
     }
 
     fn update(
@@ -258,29 +374,28 @@ impl VectorIndex for FlatIndex {
         id: VectorId,
         vector: &[f32],
         payload: Payload,
-    ) -> Result<(), IndexError>
-    {
-        todo!()
+    ) -> Result<(), IndexError> {
+        FlatIndex::delete(self, id)?;
+        FlatIndex::insert(self, id, vector, payload)
     }
 
     fn len(&self) -> usize {
-        todo!()
+        FlatIndex::len(self)
     }
 
     fn is_empty(&self) -> bool {
-        todo!()
+        FlatIndex::is_empty(self)
     }
 
     fn dimension(&self) -> usize {
-        todo!()
+        FlatIndex::dimension(self)
     }
 
     fn metric(&self) -> DistanceMetric {
-        todo!()
+        FlatIndex::metric(self)
     }
 
     fn size_bytes(&self) -> usize {
-        todo!()
+        FlatIndex::size_bytes(self)
     }
-
 }
