@@ -14,5 +14,6 @@ pub mod utils {
     pub mod crc32c;
     pub mod hash;
     pub mod heap;
+    pub mod roaring;
     pub mod sha256;
 }
