@@ -15,6 +15,10 @@
 //! assert_eq!(tracker.get_bytes(MemoryTier::Hot), 0);
 //! ```
 
+#![cfg(unix)]
+
+mod policy;
+
 use std::hash::Hash;
 use std::sync::LazyLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
