@@ -396,8 +396,8 @@ mod tests {
     #[test]
     fn mmap_file_write_and_flush() {
         let (_file, path) = test_file();
-        let mut file = open_test_file(&path);
-        let mapping = unsafe { MmapOptions::new(4096).mmap_file(&file).unwrap() };
+        let file = open_test_file(&path);
+        let mut mapping = unsafe { MmapOptions::new(4096).mmap_file(&file).unwrap() };
         let slice = unsafe { mapping.as_mut_slice() };
         slice[0] = 0xCD;
         slice[1] = 0xEF;
