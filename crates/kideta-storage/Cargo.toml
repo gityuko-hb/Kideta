@@ -14,6 +14,7 @@ categories.workspace = true
 kideta-core = { path = "../kideta-core" }
 kideta-index = { path = "../kideta-index" }
 half = { workspace = true }
+libc = { workspace = true }
 tracing = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -478,6 +478,7 @@ dependencies = [
  "half",
  "kideta-core",
  "kideta-index",
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
