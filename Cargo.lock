@@ -475,8 +475,10 @@ name = "kideta-storage"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "half",
  "kideta-core",
  "kideta-index",
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
