@@ -12,7 +12,10 @@ impl MultiSegmentVectorStore {
     /// Create from a sorted list of segment directory paths.
     /// Each path should contain a "vectors.bin" file.
     /// Returns None if any segment file can't be opened.
-    pub fn open(segment_dirs: &[&Path], dim: u32) -> Option<Self> {
+    pub fn open(
+        segment_dirs: &[&Path],
+        dim: u32,
+    ) -> Option<Self> {
         if segment_dirs.is_empty() {
             return None;
         }
@@ -46,7 +49,10 @@ impl VectorStore for MultiSegmentVectorStore {
         self.dim as usize
     }
 
-    fn get_vector(&self, i: usize) -> Option<&[f32]> {
+    fn get_vector(
+        &self,
+        i: usize,
+    ) -> Option<&[f32]> {
         if i >= self.len() {
             return None;
         }
