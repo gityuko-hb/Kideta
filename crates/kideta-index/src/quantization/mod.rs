@@ -38,7 +38,9 @@
 //! - Integration via `VectorIndex::search_quantized()` on FlatIndex and HnswIndex
 
 pub mod config;
+pub mod sq4;
 pub mod sq8;
 
 pub use config::{BinaryConfig, PqConfig, QuantizationConfig, Sq4Config, Sq8Config};
+pub use sq4::Sq4Stats;
 pub use sq8::Sq8Stats;
