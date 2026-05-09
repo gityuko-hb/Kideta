@@ -42,8 +42,10 @@ pub mod config;
 pub mod pq;
 pub mod sq4;
 pub mod sq8;
+pub mod storage;
 
 pub use config::{BinaryConfig, PqConfig, QuantizationConfig, Sq4Config, Sq8Config};
 pub use pq::PqTrainer;
 pub use sq4::Sq4Stats;
 pub use sq8::Sq8Stats;
+pub use storage::{QuantizedStorage, encode_vectors};
