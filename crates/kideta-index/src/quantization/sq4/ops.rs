@@ -29,7 +29,10 @@ impl Sq4Ops {
     /// code[i/2] = (quantized[i*2] << 4) | quantized[i*2+1]///
     /// Memory: (dimension +1) / 2 bytes per vector.
     #[inline]
-    pub fn encode(config: &Sq4Config, vector: &[f32]) -> Vec<u8> {
+    pub fn encode(
+        config: &Sq4Config,
+        vector: &[f32],
+    ) -> Vec<u8> {
         let code_len = config.dimension.div_ceil(2);
         let mut code = vec![0u8; code_len];
         Self::encode_to_slice(config, vector, &mut code);
@@ -39,7 +42,11 @@ impl Sq4Ops {
     /// Encode an f32 vector directly into a pre-allocated u8 slice.
     ///Panics if `code.len() != (config.dimension + 1)/ 2`.
     #[inline]
-    pub fn encode_to_slice(config: &Sq4Config, vector: &[f32], code: &mut [u8]) {
+    pub fn encode_to_slice(
+        config: &Sq4Config,
+        vector: &[f32],
+        code: &mut [u8],
+    ) {
         let code_len = config.dimension.div_ceil(2);
         assert_eq!(code.len(), code_len, "code slice has wrong length");
         assert_eq!(vector.len(), config.dimension, "vector has wrong dimension");
@@ -57,14 +64,22 @@ impl Sq4Ops {
 
     /// Quantize a single f32 value to4 bits [0, 15].
     #[inline(always)]
-    fn quantize_4bit(config: &Sq4Config, idx: usize, value: f32) -> u8 {
+    fn quantize_4bit(
+        config: &Sq4Config,
+        idx: usize,
+        value: f32,
+    ) -> u8 {
         let quantized = (value + config.offset[idx]) * config.scale[idx];
         quantized.clamp(0.0, 15.0).round() as u8
     }
 
     /// Quantize a single f32 value to f32 for SIMD distance computation.
     #[inline(always)]
-    fn quantize_4bit_f32(config: &Sq4Config, idx: usize, value: f32) -> f32 {
+    fn quantize_4bit_f32(
+        config: &Sq4Config,
+        idx: usize,
+        value: f32,
+    ) -> f32 {
         (value + config.offset[idx]) * config.scale[idx]
     }
 
@@ -75,7 +90,10 @@ impl Sq4Ops {
     /// vector[i+1] = high_nibble / scale[i+1] - offset[i+1]
     /// ```
     #[inline]
-    pub fn decode(config: &Sq4Config, code: &[u8]) -> Vec<f32> {
+    pub fn decode(
+        config: &Sq4Config,
+        code: &[u8],
+    ) -> Vec<f32> {
         let mut vector = vec![0.0_f32; config.dimension];
         Self::decode_to_slice(config, code, &mut vector);
         vector
@@ -83,7 +101,11 @@ impl Sq4Ops {
 
     /// Decode a packed u8 code directly into a pre-allocated f32 slice.
     #[inline]
-    pub fn decode_to_slice(config: &Sq4Config, code: &[u8], vector: &mut [f32]) {
+    pub fn decode_to_slice(
+        config: &Sq4Config,
+        code: &[u8],
+        vector: &mut [f32],
+    ) {
         assert_eq!(vector.len(), config.dimension);
 
         for i in (0..config.dimension).step_by(2) {
@@ -100,7 +122,11 @@ impl Sq4Ops {
 
     /// Dequantize a4-bit value back to f32.
     #[inline(always)]
-    fn dequantize_4bit(config: &Sq4Config, idx: usize, quantized: f32) -> f32 {
+    fn dequantize_4bit(
+        config: &Sq4Config,
+        idx: usize,
+        quantized: f32,
+    ) -> f32 {
         if config.scale[idx] > 0.0 {
             quantized / config.scale[idx] - config.offset[idx]
         } else {
@@ -113,13 +139,21 @@ impl Sq4Ops {
     /// Quantizes query on-the-fly and computes distance in4-bit space.
     /// Returns L2² (not L2), matching SQ8 behavior.
     #[inline]
-    pub fn approx_l2_distance(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub fn approx_l2_distance(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         Self::approx_l2_distance_scalar(config, query, code)
     }
 
     /// Scalar implementation of L2² distance.
     #[inline]
-    fn approx_l2_distance_scalar(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    fn approx_l2_distance_scalar(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         assert_eq!(query.len(), config.dimension);
 
         let mut sum_sq = 0.0_f32;
@@ -146,7 +180,11 @@ impl Sq4Ops {
 
     /// Compute approximate L2 distance (square root of L2²).
     #[inline]
-    pub fn approx_l2(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub fn approx_l2(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         Self::approx_l2_distance(config, query, code).sqrt()
     }
 
@@ -154,7 +192,11 @@ impl Sq4Ops {
     ///
     /// Decodes both to f32 and computes cosine.
     #[inline]
-    pub fn approx_cosine(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub fn approx_cosine(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         let decoded = Self::decode(config, code);
         Self::cosine_similarity(query, &decoded)
     }
@@ -163,7 +205,11 @@ impl Sq4Ops {
     ///
     /// Decodes code to f32 and computes dot product.
     #[inline]
-    pub fn approx_dot(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub fn approx_dot(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         assert_eq!(query.len(), config.dimension);
 
         let mut dot = 0.0_f32;
@@ -184,7 +230,10 @@ impl Sq4Ops {
     }
 
     #[inline]
-    fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    fn cosine_similarity(
+        a: &[f32],
+        b: &[f32],
+    ) -> f32 {
         let mut dot = 0.0_f32;
         let mut norm_a = 0.0_f32;
         let mut norm_b = 0.0_f32;
@@ -201,7 +250,10 @@ impl Sq4Ops {
 
     /// Pack2×4-bit values into1 byte.
     #[inline]
-    pub fn pack_nibbles(high: u8, low: u8) -> u8 {
+    pub fn pack_nibbles(
+        high: u8,
+        low: u8,
+    ) -> u8 {
         ((high & 0x0F) << 4) | (low & 0x0F)
     }
 
@@ -232,7 +284,11 @@ impl Sq4Simd {
     /// The `query` slice must have at least `dim` elements.
     #[inline]
     #[target_feature(enable = "avx2")]
-    pub unsafe fn approx_l2_distance_avx2(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub unsafe fn approx_l2_distance_avx2(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         use std::arch::x86_64::*;
 
         let dim = config.dimension;
@@ -248,13 +304,15 @@ impl Sq4Simd {
 
             if byte_base + 16 <= code_chunks {
                 // Load 16 bytes of code (32 nibbles) using SSE
-                let code_bytes = unsafe {
-                    _mm_loadu_si128(code.as_ptr().add(byte_base) as *const __m128i)
-                };
+                let code_bytes =
+                    unsafe { _mm_loadu_si128(code.as_ptr().add(byte_base) as *const __m128i) };
 
                 // Unpack nibbles to u16 values
                 let zero = _mm256_setzero_si256();
-                let _unpacked = _mm256_unpacklo_epi8(_mm256_and_si256(_mm256_castsi128_si256(code_bytes), zero), zero);
+                let _unpacked = _mm256_unpacklo_epi8(
+                    _mm256_and_si256(_mm256_castsi128_si256(code_bytes), zero),
+                    zero,
+                );
 
                 // Process pairs of nibbles
                 // This is a simplified version - full implementation would needcareful handling
@@ -270,7 +328,11 @@ impl Sq4Simd {
                     };
 
                     let q_low = if base_idx + j * 2 + 1 < dim {
-                        Sq4Ops::quantize_4bit_f32(config, base_idx + j * 2 + 1, query[base_idx + j * 2 + 1])
+                        Sq4Ops::quantize_4bit_f32(
+                            config,
+                            base_idx + j * 2 + 1,
+                            query[base_idx + j * 2 + 1],
+                        )
                     } else {
                         0.0
                     };
@@ -310,7 +372,11 @@ impl Sq4Simd {
     /// `query` and `code` slices must have sufficient length.
     #[inline]
     #[target_feature(enable = "neon")]
-    pub unsafe fn approx_l2_distance_neon(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub unsafe fn approx_l2_distance_neon(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         // Fallback to scalar for now - NEON optimization pending
         Sq4Ops::approx_l2_distance(config, query, code)
     }
@@ -319,7 +385,11 @@ impl Sq4Simd {
 impl Sq4Simd {
     /// Compute approximate L2² distance with runtime SIMD dispatch.
     #[inline]
-    pub fn approx_l2_distance(config: &Sq4Config, query: &[f32], code: &[u8]) -> f32 {
+    pub fn approx_l2_distance(
+        config: &Sq4Config,
+        query: &[f32],
+        code: &[u8],
+    ) -> f32 {
         #[cfg(target_arch = "x86_64")]
         {
             if std::arch::is_x86_feature_detected!("avx2") {
@@ -395,7 +465,11 @@ mod tests {
         let dist = Sq4Ops::approx_l2_distance(&config, &vector, &code);
 
         // Distance should be very small (quantization error only)
-        assert!(dist < 2.0, "Distance {} too large for identical vectors", dist);
+        assert!(
+            dist < 2.0,
+            "Distance {} too large for identical vectors",
+            dist
+        );
     }
 
     #[test]
@@ -413,12 +487,18 @@ mod tests {
 
         assert!(dist11 < dist12, "Same vector should have smaller distance");
         assert!(dist22 < dist12, "Same vector should have smaller distance");
-        assert!(dist12 > 0.0, "Different vectors should have positive distance");
+        assert!(
+            dist12 > 0.0,
+            "Different vectors should have positive distance"
+        );
     }
 
     #[test]
     fn test_odd_dimension() {
-        let config = Sq4Config::with_stats(vec![0.0_f32, 5.0_f32, 10.0_f32], vec![15.0_f32, 10.0_f32, 15.0_f32]);
+        let config = Sq4Config::with_stats(
+            vec![0.0_f32, 5.0_f32, 10.0_f32],
+            vec![15.0_f32, 10.0_f32, 15.0_f32],
+        );
 
         let vector = vec![7.5_f32, 7.5_f32, 12.5_f32];
         let code = Sq4Ops::encode(&config, &vector);

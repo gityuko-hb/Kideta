@@ -49,7 +49,11 @@ impl PqOps {
         assert_eq!(code.len(), config.num_subspaces);
         assert_eq!(vector.len(), config.dimension);
 
-        for (m, code_m) in code.iter_mut().enumerate().take(config.num_subspaces) {
+        for (m, code_m) in code
+            .iter_mut()
+            .enumerate()
+            .take(config.num_subspaces)
+        {
             let start = m * config.subspace_dim;
             let end = start + config.subspace_dim;
             let subvec = &vector[start..end];
