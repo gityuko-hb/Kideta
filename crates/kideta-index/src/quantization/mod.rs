@@ -37,6 +37,7 @@
 //! - Training is done offline (see `Sq8Stats`, `PqTrainer`) before indexing
 //! - Integration via `VectorIndex::search_quantized()` on FlatIndex and HnswIndex
 
+pub mod binary;
 pub mod config;
 pub mod sq4;
 pub mod sq8;
