@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod distance;
 pub mod enums;
 pub mod error;
 pub mod metric;
@@ -7,7 +8,6 @@ pub mod record;
 pub mod schema;
 pub mod types;
 pub mod vector_store;
-pub mod distance;
 pub mod utils {
     pub mod arena;
     pub mod base64;
