@@ -6,7 +6,7 @@ pub mod payload;
 pub mod record;
 pub mod schema;
 pub mod types;
-
+pub mod vector_store;
 pub mod distance;
 pub mod utils {
     pub mod arena;
