@@ -51,7 +51,10 @@ pub enum SearchParams {
 }
 
 impl SearchParams {
-    pub fn from_index_type_and_k(index_type: IndexType, k: usize) -> Self {
+    pub fn from_index_type_and_k(
+        index_type: IndexType,
+        k: usize,
+    ) -> Self {
         match index_type {
             IndexType::Flat => SearchParams::Flat(FlatSearchParams::from_k(k)),
             IndexType::Hnsw => SearchParams::Hnsw(HnswSearchParams::from_k(k)),
@@ -66,7 +69,10 @@ impl SearchParams {
         }
     }
 
-    pub fn is_adaptive_for(&self, other: &SearchParams) -> bool {
+    pub fn is_adaptive_for(
+        &self,
+        other: &SearchParams,
+    ) -> bool {
         matches!(
             (self, other),
             (SearchParams::Flat(_), SearchParams::Flat(_))

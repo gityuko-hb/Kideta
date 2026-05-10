@@ -32,7 +32,7 @@ use crate::hnsw::graph::{HnswGraph, HnswStats};
 use crate::hnsw::neighbors::select_neighbors_heuristic;
 use crate::hnsw::params::HnswParams;
 use crate::hnsw::searcher::HnswSearcher;
-use crate::quantization::{encode_vectors, QuantizationConfig, QuantizedStorage};
+use crate::quantization::{QuantizationConfig, QuantizedStorage, encode_vectors};
 use crate::search_params::SearchParams;
 use crate::traits::{FilterFn, IndexError, ScoredVectorId, VectorIndex};
 
@@ -62,7 +62,11 @@ pub struct HnswIndex {
 }
 
 impl HnswIndex {
-    pub fn new(dimension: usize, params: HnswParams, metric: DistanceMetric) -> Self {
+    pub fn new(
+        dimension: usize,
+        params: HnswParams,
+        metric: DistanceMetric,
+    ) -> Self {
         let distance_fn = match metric {
             DistanceMetric::Cosine => kideta_core::distance::cosine_f32,
             DistanceMetric::L2 => kideta_core::distance::l2_f32,
@@ -70,7 +74,7 @@ impl HnswIndex {
             DistanceMetric::Hamming => {
                 // Hamming operates on binary vectors - use wrapper that converts f32 to binary
                 hamming_distance_wrapper
-            }
+            },
         };
 
         Self {
@@ -91,7 +95,12 @@ impl HnswIndex {
         }
     }
 
-    pub fn with_capacity(dimension: usize, params: HnswParams, metric: DistanceMetric, expected_count: usize) -> Self {
+    pub fn with_capacity(
+        dimension: usize,
+        params: HnswParams,
+        metric: DistanceMetric,
+        expected_count: usize,
+    ) -> Self {
         let distance_fn = match metric {
             DistanceMetric::Cosine => kideta_core::distance::cosine_f32,
             DistanceMetric::L2 => kideta_core::distance::l2_f32,
@@ -99,7 +108,7 @@ impl HnswIndex {
             DistanceMetric::Hamming => {
                 // Hamming operates on binary vectors - use wrapper that converts f32 to binary
                 hamming_distance_wrapper
-            }
+            },
         };
 
         Self {
@@ -130,7 +139,12 @@ impl HnswIndex {
         rng.hnsw_level(self.params.ml)
     }
 
-    fn insert_internal(&self, id: VectorId, vector: &[f32], payload: Payload) -> Result<(), IndexError> {
+    fn insert_internal(
+        &self,
+        id: VectorId,
+        vector: &[f32],
+        payload: Payload,
+    ) -> Result<(), IndexError> {
         if vector.len() != self.dimension() {
             return Err(IndexError::DimensionMismatch {
                 expected: self.dimension(),
@@ -175,7 +189,8 @@ impl HnswIndex {
 
         while current_level > level + 1 {
             let searcher = HnswSearcher::new(&graph, &self.params, self.metric);
-            let results = searcher.search_layer(query_vector, 1, current_level, Some(_current_node));
+            let results =
+                searcher.search_layer(query_vector, 1, current_level, Some(_current_node));
             if let Some(first) = results.first() {
                 _current_node = first.id.as_u64() as usize;
             }
@@ -194,7 +209,10 @@ impl HnswIndex {
             } else {
                 searcher.search_layer(query_vector, self.params.m, l, Some(_current_node))
             };
-            let candidate_ids: Vec<usize> = candidates.iter().map(|s| s.id.as_u64() as usize).collect();
+            let candidate_ids: Vec<usize> = candidates
+                .iter()
+                .map(|s| s.id.as_u64() as usize)
+                .collect();
 
             let neighbors = select_neighbors_heuristic(
                 &graph,
@@ -215,7 +233,12 @@ impl HnswIndex {
     }
 
     #[allow(dead_code)]
-    pub fn load(_dimension: usize, params: HnswParams, metric: DistanceMetric, graph: HnswGraph) -> Self {
+    pub fn load(
+        _dimension: usize,
+        params: HnswParams,
+        metric: DistanceMetric,
+        graph: HnswGraph,
+    ) -> Self {
         let distance_fn = match metric {
             DistanceMetric::Cosine => kideta_core::distance::cosine_f32,
             DistanceMetric::L2 => kideta_core::distance::l2_f32,
@@ -223,7 +246,7 @@ impl HnswIndex {
             DistanceMetric::Hamming => {
                 // Hamming operates on binary vectors - use wrapper that converts f32 to binary
                 hamming_distance_wrapper
-            }
+            },
         };
 
         let node_count = graph.len();
@@ -255,7 +278,7 @@ impl HnswIndex {
 
     pub fn seal_for_reading(&mut self) {
         if self.build_state == BuildState::Built {
-            let graph = self.graph.write().unwrap();
+            let graph = self.graph.read().unwrap();
             self.graph_sealed = Some(Arc::new(graph.clone()));
         }
     }
@@ -324,7 +347,8 @@ impl HnswIndex {
         let payloads: Vec<Option<Payload>> = payloads.into_iter().map(Some).collect();
         // Clone ids để sau build còn reconstruct node_to_id mapping
         let ids_clone = ids.clone();
-        let rebuilt_graph = Self::build_internal(dimension, params, metric, ids, vectors, payloads)?;
+        let rebuilt_graph =
+            Self::build_internal(dimension, params, metric, ids, vectors, payloads)?;
 
         // ⚠ QUAN TRỌNG: rebuild node_to_id / id_to_node mapping
         // build_internal tạo index mới rồi chỉ lấy graph, mappings bị mất
@@ -364,12 +388,12 @@ impl HnswIndex {
             let mut payloads_out = Vec::with_capacity(graph.len());
 
             for node_id in 0..graph.len() {
-                if let Some(vector) = graph.get_vector(node_id) {
-                    if let Some(&id) = node_to_id.get(&node_id) {
-                        vectors.push(vector.to_vec());
-                        ids.push(id);
-                        payloads_out.push(payloads.get(node_id).cloned().flatten());
-                    }
+                if let Some(vector) = graph.get_vector(node_id)
+                    && let Some(&id) = node_to_id.get(&node_id)
+                {
+                    vectors.push(vector.to_vec());
+                    ids.push(id);
+                    payloads_out.push(payloads.get(node_id).cloned().flatten());
                 }
             }
             (vectors, ids, payloads_out)
@@ -378,7 +402,8 @@ impl HnswIndex {
         self.build_state = BuildState::Building;
 
         let ids_clone = ids.clone();
-        let rebuilt_graph = Self::build_internal(dimension, params, metric, ids, vectors, payloads)?;
+        let rebuilt_graph =
+            Self::build_internal(dimension, params, metric, ids, vectors, payloads)?;
 
         // ⚠ Rebuild node_to_id mapping (build_internal không giữ mapping)
         let mut node_to_id = self.node_to_id.write().unwrap();
@@ -468,11 +493,14 @@ impl HnswIndex {
             self.build_state = BuildState::NotBuilt;
         }
     }
-
 }
 
 impl VectorIndex for HnswIndex {
-    fn search(&self, query: &[f32], k: usize) -> Vec<ScoredVectorId> {
+    fn search(
+        &self,
+        query: &[f32],
+        k: usize,
+    ) -> Vec<ScoredVectorId> {
         let graph = self.get_readable_graph();
         let searcher = HnswSearcher::new(&graph, &self.params, self.metric);
         let results = searcher.search(query, k, self.params.ef_search);
@@ -493,7 +521,12 @@ impl VectorIndex for HnswIndex {
             .collect()
     }
 
-    fn search_with_filter(&self, query: &[f32], k: usize, filter: Option<&FilterFn>) -> Vec<ScoredVectorId> {
+    fn search_with_filter(
+        &self,
+        query: &[f32],
+        k: usize,
+        filter: Option<&FilterFn>,
+    ) -> Vec<ScoredVectorId> {
         let graph = self.get_readable_graph();
         let deleted = self.deleted.read().unwrap();
         let payloads = self.payloads.read().unwrap();
@@ -544,7 +577,12 @@ impl VectorIndex for HnswIndex {
         results
     }
 
-    fn search_with_params(&self, query: &[f32], k: usize, params: &SearchParams) -> Vec<ScoredVectorId> {
+    fn search_with_params(
+        &self,
+        query: &[f32],
+        k: usize,
+        params: &SearchParams,
+    ) -> Vec<ScoredVectorId> {
         if let SearchParams::Hnsw(p) = params {
             let graph = self.get_readable_graph();
             let searcher = HnswSearcher::new(&graph, &self.params, self.metric);
@@ -620,17 +658,30 @@ impl VectorIndex for HnswIndex {
         }
     }
 
-    fn insert(&mut self, id: VectorId, vector: &[f32], payload: Payload) -> Result<(), IndexError> {
+    fn insert(
+        &mut self,
+        id: VectorId,
+        vector: &[f32],
+        payload: Payload,
+    ) -> Result<(), IndexError> {
         self.insert_internal(id, vector, payload)
     }
 
-    fn delete(&mut self, id: VectorId) -> Result<(), IndexError> {
+    fn delete(
+        &mut self,
+        id: VectorId,
+    ) -> Result<(), IndexError> {
         let mut deleted = self.deleted.write().unwrap();
         deleted.insert(id.as_u64() as u32);
         Ok(())
     }
 
-    fn update(&mut self, id: VectorId, vector: &[f32], payload: Payload) -> Result<(), IndexError> {
+    fn update(
+        &mut self,
+        id: VectorId,
+        vector: &[f32],
+        payload: Payload,
+    ) -> Result<(), IndexError> {
         {
             let mut deleted = self.deleted.write().unwrap();
             deleted.insert(id.as_u64() as u32);
@@ -688,7 +739,12 @@ impl VectorIndex for HnswIndex {
         self.quantized_storage.as_ref()
     }
 
-    fn search_quantized(&self, query: &[f32], k: usize, rescore_factor: usize) -> Vec<ScoredVectorId> {
+    fn search_quantized(
+        &self,
+        query: &[f32],
+        k: usize,
+        rescore_factor: usize,
+    ) -> Vec<ScoredVectorId> {
         let storage = match &self.quantized_storage {
             Some(s) => s,
             None => return self.search(query, k),
@@ -716,22 +772,34 @@ impl VectorIndex for HnswIndex {
             let node_id = candidate.id.as_u64() as usize;
             if let Some(vector) = graph.get_vector(node_id) {
                 let score = distance_fn(query, vector);
-                let original_id = node_to_id.get(&node_id).copied().unwrap_or(candidate.id);
+                let original_id = node_to_id
+                    .get(&node_id)
+                    .copied()
+                    .unwrap_or(candidate.id);
                 scored.push(ScoredVectorId::new(original_id, score));
             }
         }
 
-        scored.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            a.score
+                .partial_cmp(&b.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         scored.truncate(k);
         scored
     }
 
-    fn train_quantization(&mut self, config: &QuantizationConfig) -> Result<(), IndexError> {
+    fn train_quantization(
+        &mut self,
+        config: &QuantizationConfig,
+    ) -> Result<(), IndexError> {
         let graph = self.graph.read().unwrap();
         let node_count = graph.len();
 
         if node_count == 0 {
-            return Err(IndexError::Internal("cannot train quantization on empty index".into()));
+            return Err(IndexError::Internal(
+                "cannot train quantization on empty index".into(),
+            ));
         }
 
         let dim = graph.dimension();
@@ -779,9 +847,15 @@ mod tests {
         let v2 = vec![0.0, 1.0, 0.0, 0.0];
         let v3 = vec![0.0, 0.0, 1.0, 0.0];
 
-        index.insert(VectorId::new(1), &v1, Payload::default()).unwrap();
-        index.insert(VectorId::new(2), &v2, Payload::default()).unwrap();
-        index.insert(VectorId::new(3), &v3, Payload::default()).unwrap();
+        index
+            .insert(VectorId::new(1), &v1, Payload::default())
+            .unwrap();
+        index
+            .insert(VectorId::new(2), &v2, Payload::default())
+            .unwrap();
+        index
+            .insert(VectorId::new(3), &v3, Payload::default())
+            .unwrap();
 
         let query = vec![0.9, 0.1, 0.1, 0.1];
         let results = index.search(&query, 2);
@@ -797,8 +871,12 @@ mod tests {
         let v1 = vec![1.0, 0.0, 0.0, 0.0];
         let v2 = vec![0.0, 1.0, 0.0, 0.0];
 
-        index.insert(VectorId::new(1), &v1, Payload::default()).unwrap();
-        index.insert(VectorId::new(2), &v2, Payload::default()).unwrap();
+        index
+            .insert(VectorId::new(1), &v1, Payload::default())
+            .unwrap();
+        index
+            .insert(VectorId::new(2), &v2, Payload::default())
+            .unwrap();
 
         assert_eq!(index.len(), 2);
 
@@ -812,7 +890,12 @@ mod tests {
         let mut index = HnswIndex::new(4, params, DistanceMetric::L2);
 
         for i in 0..10 {
-            let vector = vec![(i as f32) * 0.1, (i as f32) * 0.2, (i as f32) * 0.3, (i as f32) * 0.4];
+            let vector = vec![
+                (i as f32) * 0.1,
+                (i as f32) * 0.2,
+                (i as f32) * 0.3,
+                (i as f32) * 0.4,
+            ];
             index
                 .insert(VectorId::new(i as u64), &vector, Payload::default())
                 .unwrap();
@@ -855,7 +938,10 @@ mod tests {
         let query = vec![0.1, 0.1, 0.1, 0.1];
         let results_filtered = index.search_with_filter(&query, 10, Some(&filter));
 
-        assert!(!results_filtered.is_empty(), "Should find at least one matching vector");
+        assert!(
+            !results_filtered.is_empty(),
+            "Should find at least one matching vector"
+        );
         assert_eq!(
             results_filtered.len(),
             2,
@@ -871,7 +957,9 @@ mod tests {
         let mut payload1 = Payload::new();
         payload1.insert("category", kideta_core::payload::PayloadValue::Int(1));
 
-        index.insert(VectorId::new(1), &[0.0, 0.0, 0.0, 0.0], payload1).unwrap();
+        index
+            .insert(VectorId::new(1), &[0.0, 0.0, 0.0, 0.0], payload1)
+            .unwrap();
 
         let filter = |_id: VectorId, payload: &Payload| {
             payload
@@ -957,7 +1045,9 @@ mod tests {
                 })
                 .collect();
             all_vectors.push(vec.clone());
-            index.insert(VectorId::new(i as u64), &vec, Payload::default()).unwrap();
+            index
+                .insert(VectorId::new(i as u64), &vec, Payload::default())
+                .unwrap();
         }
 
         // Train SQ8 quantization
@@ -968,7 +1058,9 @@ mod tests {
         assert!(index.quantized_storage().is_some());
 
         // Search with quantized traversal + exact rescore
-        let query: Vec<f32> = (0..16).map(|j| ((j * 37) % 1000) as f32 / 1000.0 * 2.0).collect();
+        let query: Vec<f32> = (0..16)
+            .map(|j| ((j * 37) % 1000) as f32 / 1000.0 * 2.0)
+            .collect();
         let quantized_results = index.search_quantized(&query, 10, 10);
 
         // Verify results are returned
@@ -982,14 +1074,22 @@ mod tests {
         // Verify quantized search returns different (but overlapping) results vs exact search
         let exact_results = index.search(&query, 10);
         let exact_ids: std::collections::HashSet<_> = exact_results.iter().map(|r| r.id).collect();
-        let quantized_ids: std::collections::HashSet<_> = quantized_results.iter().map(|r| r.id).collect();
+        let quantized_ids: std::collections::HashSet<_> =
+            quantized_results.iter().map(|r| r.id).collect();
         let overlap = exact_ids.intersection(&quantized_ids).count();
-        assert!(overlap >= 3, "Expected at least 3 overlapping IDs, got {}", overlap);
+        assert!(
+            overlap >= 3,
+            "Expected at least 3 overlapping IDs, got {}",
+            overlap
+        );
     }
 }
 
 /// Wrapper to adapt Hamming distance for f32 vectors used by HNSW
 /// Converts f32 to binary: positive values -> 1, non-positive -> 0
-fn hamming_distance_wrapper(a: &[f32], b: &[f32]) -> f32 {
+fn hamming_distance_wrapper(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     kideta_core::distance::hamming_distance_f32(a, b) as f32
 }

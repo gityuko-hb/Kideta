@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn test_magic_number() {
-        assert_eq!(MAGIC, 0x48595357);
+        assert_eq!(MAGIC, 0x57534E48);
     }
 
     #[test]
