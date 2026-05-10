@@ -19,6 +19,7 @@ pub mod utils {
     pub mod roaring;
     pub mod sha256;
     pub mod slab;
+    pub mod varint;
 }
 
 pub mod mmap;
