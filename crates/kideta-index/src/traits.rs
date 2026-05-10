@@ -6,9 +6,9 @@
 
 use std::cmp::Ordering;
 
-use kideta_core::{metric::DistanceMetric, payload::Payload, types::VectorId};
-
+use crate::quantization::{QuantizationConfig, QuantizedStorage};
 use crate::search_params::SearchParams;
+use kideta_core::{metric::DistanceMetric, payload::Payload, types::VectorId};
 
 /// Common error type for index operations.
 
@@ -164,4 +164,30 @@ pub trait VectorIndex: Send + Sync {
     fn metric(&self) -> DistanceMetric;
 
     fn size_bytes(&self) -> usize;
+
+    fn quantization_config(&self) -> Option<&QuantizationConfig> {
+        None
+    }
+
+    fn quantized_storage(&self) -> Option<&QuantizedStorage> {
+        None
+    }
+
+    fn search_quantized(
+        &self,
+        query: &[f32],
+        k: usize,
+        _rescore_factor: usize,
+    ) -> Vec<ScoredVectorId> {
+        self.search(query, k)
+    }
+
+    fn train_quantization(
+        &mut self,
+        _config: &QuantizationConfig,
+    ) -> Result<(), IndexError> {
+        Err(IndexError::Internal(
+            "quantization training not supported for this index type".into(),
+        ))
+    }
 }
