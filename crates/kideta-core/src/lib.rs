@@ -12,6 +12,7 @@ pub mod utils {
     pub mod arena;
     pub mod base64;
     pub mod bitset;
+    pub mod bloom;
     pub mod crc32c;
     pub mod hash;
     pub mod heap;
