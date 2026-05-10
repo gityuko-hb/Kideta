@@ -121,6 +121,7 @@ pub trait VectorIndex: Send + Sync {
     ) -> Vec<ScoredVectorId> {
         match params {
             SearchParams::Flat(p) => self.search(query, p.k),
+            SearchParams::Hnsw(p) => self.search(query, p.ef),
         }
     }
 
