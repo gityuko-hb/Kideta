@@ -32,7 +32,11 @@ pub struct HnswSearcher<'a> {
 }
 
 impl<'a> HnswSearcher<'a> {
-    pub fn new(graph: &'a HnswGraph, params: &'a HnswParams, metric: DistanceMetric) -> Self {
+    pub fn new(
+        graph: &'a HnswGraph,
+        params: &'a HnswParams,
+        metric: DistanceMetric,
+    ) -> Self {
         let distance_fn = match metric {
             DistanceMetric::Cosine => kideta_core::distance::cosine_f32,
             DistanceMetric::L2 => kideta_core::distance::l2_f32,
@@ -40,7 +44,7 @@ impl<'a> HnswSearcher<'a> {
             DistanceMetric::Hamming => {
                 // Hamming operates on binary vectors - use wrapper
                 hamming_distance_wrapper
-            }
+            },
         };
         Self {
             graph,
@@ -49,7 +53,12 @@ impl<'a> HnswSearcher<'a> {
         }
     }
 
-    pub fn search(&self, query: &[f32], k: usize, ef: usize) -> Vec<ScoredVectorId> {
+    pub fn search(
+        &self,
+        query: &[f32],
+        k: usize,
+        ef: usize,
+    ) -> Vec<ScoredVectorId> {
         if self.graph.is_empty() {
             return Vec::new();
         }
@@ -71,7 +80,13 @@ impl<'a> HnswSearcher<'a> {
         self.search_layer_0(query, k, ef, Some(current_node))
     }
 
-    pub fn greedy_traverse_layer(&self, query: &[f32], start_node: usize, level: usize, _ef: usize) -> usize {
+    pub fn greedy_traverse_layer(
+        &self,
+        query: &[f32],
+        start_node: usize,
+        level: usize,
+        _ef: usize,
+    ) -> usize {
         let n = self.graph.len();
         if n == 0 || start_node >= n {
             return start_node;
@@ -85,7 +100,10 @@ impl<'a> HnswSearcher<'a> {
             return start_node;
         };
         let current_dist = (self.distance_fn)(query_vector, start_vector);
-        candidates.push(ScoredVectorId::new(VectorId::new(start_node as u64), current_dist));
+        candidates.push(ScoredVectorId::new(
+            VectorId::new(start_node as u64),
+            current_dist,
+        ));
 
         let mut best_node = start_node;
         let mut best_dist = current_dist;
@@ -100,7 +118,9 @@ impl<'a> HnswSearcher<'a> {
                 continue;
             }
 
-            let neighbors = self.graph.get_neighbors_unchecked(candidate_idx, level);
+            let neighbors = self
+                .graph
+                .get_neighbors_unchecked(candidate_idx, level);
 
             // Cache for fast prefetch (avoid double get_vector)
             let graph_ptr = self.graph.vectors_data_ptr();
@@ -142,7 +162,10 @@ impl<'a> HnswSearcher<'a> {
                     best_node = neighbor_idx;
                 }
 
-                candidates.push(ScoredVectorId::new(VectorId::new(neighbor_idx as u64), dist));
+                candidates.push(ScoredVectorId::new(
+                    VectorId::new(neighbor_idx as u64),
+                    dist,
+                ));
             }
         }
 
@@ -161,7 +184,11 @@ impl<'a> HnswSearcher<'a> {
             return Vec::new();
         }
 
-        let ef_multiplier = if level == 0 { 8 } else { 2 };
+        let ef_multiplier = if level == 0 {
+            8
+        } else {
+            2
+        };
         let ef = (k * ef_multiplier).max(1);
 
         let mut candidates = MinHeap::with_capacity(ef);
@@ -174,7 +201,7 @@ impl<'a> HnswSearcher<'a> {
                     return Vec::new();
                 }
                 crate::hnsw::graph::EntryPoint { node_id, level }
-            }
+            },
             None => match self.graph.get_entry_point() {
                 Some(ep) => ep,
                 None => return Vec::new(),
@@ -209,7 +236,9 @@ impl<'a> HnswSearcher<'a> {
                 continue;
             }
 
-            let neighbors = self.graph.get_neighbors_unchecked(candidate_idx, level);
+            let neighbors = self
+                .graph
+                .get_neighbors_unchecked(candidate_idx, level);
 
             for &neighbor_id in neighbors {
                 let neighbor_idx = neighbor_id as usize;
@@ -238,7 +267,13 @@ impl<'a> HnswSearcher<'a> {
         results.into_sorted_asc()
     }
 
-    pub fn search_layer_0(&self, query: &[f32], k: usize, ef: usize, start_node: Option<usize>) -> Vec<ScoredVectorId> {
+    pub fn search_layer_0(
+        &self,
+        query: &[f32],
+        k: usize,
+        ef: usize,
+        start_node: Option<usize>,
+    ) -> Vec<ScoredVectorId> {
         let n = self.graph.len();
         if n == 0 {
             return Vec::new();
@@ -255,7 +290,7 @@ impl<'a> HnswSearcher<'a> {
                     return Vec::new();
                 }
                 crate::hnsw::graph::EntryPoint { node_id, level: 0 }
-            }
+            },
             None => match self.graph.get_entry_point() {
                 Some(ep) => ep,
                 None => return Vec::new(),
@@ -283,7 +318,9 @@ impl<'a> HnswSearcher<'a> {
                 break;
             }
 
-            let neighbors = self.graph.get_neighbors_unchecked(candidate.id.as_u64() as usize, 0);
+            let neighbors = self
+                .graph
+                .get_neighbors_unchecked(candidate.id.as_u64() as usize, 0);
 
             // Cache for fast prefetch (avoid double get_vector)
             let graph_ptr = self.graph.vectors_data_ptr();
@@ -300,11 +337,11 @@ impl<'a> HnswSearcher<'a> {
                 let pf_j = j + 2;
                 if pf_j < neighbors.len() {
                     let pf_idx = neighbors[pf_j] as usize;
-                    if pf_idx < n {
-                        if let Some(ptr) = graph_ptr {
-                            unsafe {
-                                prefetch(ptr.add(pf_idx * graph_dim));
-                            }
+                    if pf_idx < n
+                        && let Some(ptr) = graph_ptr
+                    {
+                        unsafe {
+                            prefetch(ptr.add(pf_idx * graph_dim));
                         }
                     }
                 }
@@ -354,7 +391,8 @@ impl<'a> HnswSearcher<'a> {
 
         let mut lvl = level;
         while lvl > 0 {
-            current_node = self.greedy_traverse_layer_quantized(query, current_node, lvl, 1, storage);
+            current_node =
+                self.greedy_traverse_layer_quantized(query, current_node, lvl, 1, storage);
             lvl -= 1;
         }
 
@@ -378,8 +416,13 @@ impl<'a> HnswSearcher<'a> {
         let mut visited = FixedBitset::new(n);
         visited.set(start_node);
 
-        let start_dist = storage.approx_distance(query, start_node).unwrap_or(f32::MAX);
-        candidates.push(ScoredVectorId::new(VectorId::new(start_node as u64), start_dist));
+        let start_dist = storage
+            .approx_distance(query, start_node)
+            .unwrap_or(f32::MAX);
+        candidates.push(ScoredVectorId::new(
+            VectorId::new(start_node as u64),
+            start_dist,
+        ));
 
         let mut best_node = start_node;
         let mut best_dist = start_dist;
@@ -394,7 +437,9 @@ impl<'a> HnswSearcher<'a> {
                 continue;
             }
 
-            let neighbors = self.graph.get_neighbors_unchecked(candidate_idx, level);
+            let neighbors = self
+                .graph
+                .get_neighbors_unchecked(candidate_idx, level);
 
             for &neighbor_id in neighbors {
                 let neighbor_idx = neighbor_id as usize;
@@ -406,14 +451,19 @@ impl<'a> HnswSearcher<'a> {
                 }
                 visited.set(neighbor_idx);
 
-                let dist = storage.approx_distance(query, neighbor_idx).unwrap_or(f32::MAX);
+                let dist = storage
+                    .approx_distance(query, neighbor_idx)
+                    .unwrap_or(f32::MAX);
 
                 if dist < best_dist {
                     best_dist = dist;
                     best_node = neighbor_idx;
                 }
 
-                candidates.push(ScoredVectorId::new(VectorId::new(neighbor_idx as u64), dist));
+                candidates.push(ScoredVectorId::new(
+                    VectorId::new(neighbor_idx as u64),
+                    dist,
+                ));
             }
         }
 
@@ -442,7 +492,9 @@ impl<'a> HnswSearcher<'a> {
             None => return Vec::new(),
         };
 
-        let ep_dist = storage.approx_distance(query, entry_point.node_id).unwrap_or(f32::MAX);
+        let ep_dist = storage
+            .approx_distance(query, entry_point.node_id)
+            .unwrap_or(f32::MAX);
 
         let ep_vid = VectorId::new(entry_point.node_id as u64);
         candidates.push(ScoredVectorId::new(ep_vid, ep_dist));
@@ -459,7 +511,9 @@ impl<'a> HnswSearcher<'a> {
                 break;
             }
 
-            let neighbors = self.graph.get_neighbors_unchecked(candidate.id.as_u64() as usize, 0);
+            let neighbors = self
+                .graph
+                .get_neighbors_unchecked(candidate.id.as_u64() as usize, 0);
 
             for &neighbor_id in neighbors {
                 let neighbor_idx = neighbor_id as usize;
@@ -468,7 +522,9 @@ impl<'a> HnswSearcher<'a> {
                 }
                 visited.set(neighbor_idx);
 
-                let dist = storage.approx_distance(query, neighbor_idx).unwrap_or(f32::MAX);
+                let dist = storage
+                    .approx_distance(query, neighbor_idx)
+                    .unwrap_or(f32::MAX);
                 let n_vid = VectorId::new(neighbor_idx as u64);
 
                 results.push(ScoredVectorId::new(n_vid, dist));
@@ -489,7 +545,12 @@ mod tests {
         let mut graph = HnswGraph::new(4, 16, 100);
 
         for i in 0..10 {
-            let vector = vec![(i as f32) * 0.1, (i as f32) * 0.2, (i as f32) * 0.3, (i as f32) * 0.4];
+            let vector = vec![
+                (i as f32) * 0.1,
+                (i as f32) * 0.2,
+                (i as f32) * 0.3,
+                (i as f32) * 0.4,
+            ];
             graph.add_node(&vector);
             if i > 0 {
                 graph.add_edge(0, i, 0);
@@ -524,6 +585,9 @@ mod tests {
 }
 
 /// Wrapper to adapt Hamming distance for f32 vectors
-fn hamming_distance_wrapper(a: &[f32], b: &[f32]) -> f32 {
+fn hamming_distance_wrapper(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
     kideta_core::distance::hamming_distance_f32(a, b) as f32
 }
