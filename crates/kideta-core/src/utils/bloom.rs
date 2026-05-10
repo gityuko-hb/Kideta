@@ -93,6 +93,20 @@ impl BloomFilter {
     ///
     /// # Panics
     /// Panics if `n == 0` or `fp` is not in `(0, 1)`.
+    /// Reconstruct a bloom filter from raw components (deserialization).
+    #[inline]
+    pub fn from_raw(
+        words: Vec<u64>,
+        num_bits: usize,
+        num_hashes: u32,
+    ) -> Self {
+        Self {
+            bits: FixedBitset::from_words(words, num_bits),
+            k: num_hashes,
+            m: num_bits,
+        }
+    }
+
     pub fn new(
         n: usize,
         fp: f64,
@@ -156,6 +170,32 @@ impl BloomFilter {
     /// Reset the filter — all bits cleared.
     pub fn clear(&mut self) {
         self.bits.reset();
+    }
+
+    /// Raw backing words of the bitset (read-only).
+    #[inline]
+    pub fn words(&self) -> &[u64] {
+        self.bits.words()
+    }
+
+    /// Build a bloom filter from a slice of `u32` IDs.
+    pub fn build_from_ids(
+        ids: &[u32],
+        fp: f64,
+    ) -> Self {
+        let mut bloom = Self::new(ids.len().max(1), fp);
+        for &id in ids {
+            bloom.insert(&id.to_le_bytes());
+        }
+        bloom
+    }
+
+    /// Check if a `u32` ID might be in the set.
+    pub fn contains_u32(
+        &self,
+        id: u32,
+    ) -> bool {
+        self.contains(&id.to_le_bytes())
     }
 
     /// Estimated fill ratio (fraction of bits set).

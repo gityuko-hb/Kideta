@@ -84,6 +84,15 @@ impl FixedBitset {
         }
     }
 
+    /// Create a bitset from raw backing words.
+    #[inline]
+    pub fn from_words(
+        words: Vec<u64>,
+        nbits: usize,
+    ) -> Self {
+        Self { words, nbits }
+    }
+
     /// Number of bits this bitset can hold.
     #[inline]
     pub fn capacity(&self) -> usize {
@@ -150,6 +159,12 @@ impl FixedBitset {
             .enumerate()
             .flat_map(|(wi, &word)| BitIter(word).map(move |bit| wi * 64 + bit))
             .filter(|&i| i < self.nbits)
+    }
+
+    /// Raw backing words (read-only).
+    #[inline]
+    pub fn words(&self) -> &[u64] {
+        &self.words
     }
 }
 
