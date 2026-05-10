@@ -140,11 +140,11 @@ impl<'a> HnswSearcher<'a> {
                 let pf_j = j + 2;
                 if pf_j < neighbors.len() {
                     let pf_idx = neighbors[pf_j] as usize;
-                    if pf_idx < n {
-                        if let Some(ptr) = graph_ptr {
-                            unsafe {
-                                prefetch(ptr.add(pf_idx * graph_dim));
-                            }
+                    if pf_idx < n
+                        && let Some(ptr) = graph_ptr
+                    {
+                        unsafe {
+                            prefetch(ptr.add(pf_idx * graph_dim));
                         }
                     }
                 }
