@@ -31,7 +31,11 @@ pub struct HnswParams {
 }
 
 impl HnswParams {
-    pub fn new(m: usize, ef_construction: usize, ef_search: usize) -> Self {
+    pub fn new(
+        m: usize,
+        ef_construction: usize,
+        ef_search: usize,
+    ) -> Self {
         let ml = 1.0 / (m as f64).ln();
         let max_level = Self::compute_max_level(m);
         Self {

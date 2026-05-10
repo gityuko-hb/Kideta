@@ -1,8 +1,8 @@
 pub mod flat;
-pub mod search_params;
-pub mod traits;
 pub mod hnsw;
 pub mod quantization;
+pub mod search_params;
+pub mod traits;
 
 pub use flat::FlatIndex;
 pub use quantization::{PqTrainer, QuantizationConfig, QuantizedStorage, Sq8Stats};
