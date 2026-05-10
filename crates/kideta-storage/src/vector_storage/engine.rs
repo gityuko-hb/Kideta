@@ -22,7 +22,6 @@
 //! Uses a doubling strategy for O(1) amortized appends. When capacity is reached,
 //! the file is extended to 2x the current capacity, and the mmap is remapped.
 
-#![cfg(unix)]
 use crate::vector_storage::dtype::VectorDtype;
 use crate::vector_storage::header::VectorStorageHeader;
 use kideta_core::mmap::Mmap;
