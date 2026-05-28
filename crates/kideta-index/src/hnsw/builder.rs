@@ -826,6 +826,15 @@ impl VectorIndex for HnswIndex {
     }
 }
 
+/// Wrapper to adapt Hamming distance for f32 vectors used by HNSW
+/// Converts f32 to binary: positive values -> 1, non-positive -> 0
+fn hamming_distance_wrapper(
+    a: &[f32],
+    b: &[f32],
+) -> f32 {
+    kideta_core::distance::hamming_distance_f32(a, b) as f32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1083,13 +1092,4 @@ mod tests {
             overlap
         );
     }
-}
-
-/// Wrapper to adapt Hamming distance for f32 vectors used by HNSW
-/// Converts f32 to binary: positive values -> 1, non-positive -> 0
-fn hamming_distance_wrapper(
-    a: &[f32],
-    b: &[f32],
-) -> f32 {
-    kideta_core::distance::hamming_distance_f32(a, b) as f32
 }

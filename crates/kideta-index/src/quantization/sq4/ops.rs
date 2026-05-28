@@ -453,7 +453,7 @@ mod tests {
 
         // 7.5 maps to ~7 or 8, 1.0 maps to ~1
         let (high, low) = Sq4Ops::unpack_nibbles(code[0]);
-        assert!(high >= 6 && high <= 9, "High nibble {} out of range", high);
+        assert!((6..=9).contains(&high), "High nibble {} out of range", high);
         assert!(low <= 2, "Low nibble {} out of range", low);
     }
 

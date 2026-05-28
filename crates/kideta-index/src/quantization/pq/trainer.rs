@@ -359,7 +359,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "must be divisible")]
     fn test_train_wrong_dim() {
-        let vectors = vec![vec![1.0_f32, 2.0, 3.0]];
+        let vectors = [vec![1.0_f32, 2.0, 3.0]];
         let vectors_ref: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         let trainer = PqTrainer::new(8, 256, 5);
         trainer.train(&vectors_ref);

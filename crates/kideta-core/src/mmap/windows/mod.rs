@@ -2,8 +2,6 @@
 //!
 //! Uses CreateFileMappingW and MapViewOfFile for native memory-mapped file access.
 
-#![cfg(windows)]
-
 mod file;
 mod native;
 

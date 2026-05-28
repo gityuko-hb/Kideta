@@ -54,7 +54,10 @@ pub use windows::{Mmap, MmapMut, MmapOptions};
 #[cfg(windows)]
 pub use windows::ftruncate;
 
-pub fn ftruncate_file(file: &std::fs::File, len: usize) -> Result<()> {
+pub fn ftruncate_file(
+    file: &std::fs::File,
+    len: usize,
+) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::io::AsRawFd;

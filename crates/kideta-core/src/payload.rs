@@ -436,12 +436,15 @@ mod tests {
         let mut payload = Payload::new();
         payload.insert("name", PayloadValue::Str("test".to_string()));
         payload.insert("age", PayloadValue::Int(25));
-        payload.insert("score", PayloadValue::Float(3.14));
+        payload.insert("score", PayloadValue::Float(std::f64::consts::PI));
 
         assert_eq!(payload.len(), 3);
         assert_eq!(payload.get("name").and_then(|v| v.as_str()), Some("test"));
         assert_eq!(payload.get("age").and_then(|v| v.as_int()), Some(25));
-        assert_eq!(payload.get("score").and_then(|v| v.as_float()), Some(3.14));
+        assert_eq!(
+            payload.get("score").and_then(|v| v.as_float()),
+            Some(std::f64::consts::PI)
+        );
     }
 
     #[test]

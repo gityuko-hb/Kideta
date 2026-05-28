@@ -42,7 +42,10 @@ mod bindings {
         ) -> *mut c_void;
 
         pub fn UnmapViewOfFile(lpBaseAddress: *const c_void) -> i32;
-        pub fn FlushViewOfFile(lpBaseAddress: *const c_void, dwNumberOfBytesToFlush: usize) -> i32;
+        pub fn FlushViewOfFile(
+            lpBaseAddress: *const c_void,
+            dwNumberOfBytesToFlush: usize,
+        ) -> i32;
         pub fn CloseHandle(hObject: RawHandle) -> i32;
 
         pub fn VirtualAlloc(
@@ -52,7 +55,11 @@ mod bindings {
             flProtect: u32,
         ) -> *mut c_void;
 
-        pub fn VirtualFree(lpAddress: *const c_void, dwSize: usize, dwFreeType: u32) -> i32;
+        pub fn VirtualFree(
+            lpAddress: *const c_void,
+            dwSize: usize,
+            dwFreeType: u32,
+        ) -> i32;
     }
 }
 
@@ -88,7 +95,18 @@ unsafe impl Send for Mmap {}
 unsafe impl Sync for Mmap {}
 
 impl Mmap {
-    pub unsafe fn map_file(file: &File, offset: u64) -> MmapResult<Self> {
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The provided `file` is a valid file handle open for reading.
+    /// - The file offset does not exceed the file's bounds.
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is read-only).
+    pub unsafe fn map_file(
+        file: &File,
+        offset: u64,
+    ) -> MmapResult<Self> {
         let handle = file.as_raw_handle();
         let file_size = file.metadata()?.len();
 
@@ -107,7 +125,15 @@ impl Mmap {
             return Err(map_error("CreateFileMappingW failed"));
         }
 
-        let ptr = unsafe { bindings::MapViewOfFile(mapping, FILE_MAP_READ, (offset >> 32) as u32, offset as u32, 0) };
+        let ptr = unsafe {
+            bindings::MapViewOfFile(
+                mapping,
+                FILE_MAP_READ,
+                (offset >> 32) as u32,
+                offset as u32,
+                0,
+            )
+        };
 
         if ptr.is_null() {
             unsafe { bindings::CloseHandle(mapping) };
@@ -121,11 +147,23 @@ impl Mmap {
         })
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - `len` is non-zero (returns `Err(MmapError::ZeroSize)` otherwise).
     pub unsafe fn map_anonymous(len: usize) -> MmapResult<Self> {
         if len == 0 {
             return Err(MmapError::ZeroSize);
         }
-        let ptr = unsafe { bindings::VirtualAlloc(std::ptr::null(), len, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE) };
+        let ptr = unsafe {
+            bindings::VirtualAlloc(
+                std::ptr::null(),
+                len,
+                MEM_COMMIT | MEM_RESERVE,
+                PAGE_READWRITE,
+            )
+        };
         if ptr.is_null() {
             return Err(map_error("VirtualAlloc failed"));
         }
@@ -157,11 +195,21 @@ impl Mmap {
     }
 
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped memory is not concurrently
+    /// mutated and remains valid for the lifetime of the returned slice.
     pub unsafe fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.ptr.as_ptr() as *const u8, self.len) }
     }
 
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped memory is not aliased and
+    /// remains valid for the lifetime of the returned slice.
     pub unsafe fn as_mut_slice(&mut self) -> &mut [u8] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr.as_ptr() as *mut u8, self.len) }
     }
@@ -176,7 +224,11 @@ impl Mmap {
         }
     }
 
-    pub fn flush_range(&self, _offset: usize, _len: usize) -> MmapResult<()> {
+    pub fn flush_range(
+        &self,
+        _offset: usize,
+        _len: usize,
+    ) -> MmapResult<()> {
         self.flush()
     }
 
@@ -184,11 +236,18 @@ impl Mmap {
         self.flush()
     }
 
-    pub fn flush_range_async(&self, _offset: usize, _len: usize) -> MmapResult<()> {
+    pub fn flush_range_async(
+        &self,
+        _offset: usize,
+        _len: usize,
+    ) -> MmapResult<()> {
         self.flush()
     }
 
-    pub fn advise(&self, _advice: MadvFlags) -> MmapResult<()> {
+    pub fn advise(
+        &self,
+        _advice: MadvFlags,
+    ) -> MmapResult<()> {
         Ok(())
     }
 
@@ -225,7 +284,10 @@ impl Mmap {
         Ok(())
     }
 
-    pub fn remap(&mut self, _new_len: usize) -> MmapResult<()> {
+    pub fn remap(
+        &mut self,
+        _new_len: usize,
+    ) -> MmapResult<()> {
         Err(MmapError::Map {
             reason: "remap not supported on Windows; recreate mapping".to_string(),
             code: None,
@@ -234,7 +296,10 @@ impl Mmap {
 }
 
 impl std::fmt::Debug for Mmap {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
         f.debug_struct("Mmap")
             .field("addr", &self.ptr)
             .field("len", &self.len)
@@ -263,7 +328,19 @@ unsafe impl Send for MmapMut {}
 unsafe impl Sync for MmapMut {}
 
 impl MmapMut {
-    pub unsafe fn map_file_mut(file: &File, len: usize, offset: u64) -> MmapResult<Self> {
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - The provided `file` is a valid file handle open for reading and writing.
+    /// - The file offset and length do not exceed the file's bounds.
+    /// - The resulting mapping does not violate Rust's aliasing or mutation
+    ///   guarantees (the mapping is mutable).
+    pub unsafe fn map_file_mut(
+        file: &File,
+        len: usize,
+        offset: u64,
+    ) -> MmapResult<Self> {
         let handle = file.as_raw_handle();
         let file_size = file.metadata()?.len();
         let map_size = len.max(file_size as usize);
@@ -283,7 +360,15 @@ impl MmapMut {
             return Err(map_error("CreateFileMappingW failed"));
         }
 
-        let ptr = unsafe { bindings::MapViewOfFile(mapping, FILE_MAP_WRITE, (offset >> 32) as u32, offset as u32, 0) };
+        let ptr = unsafe {
+            bindings::MapViewOfFile(
+                mapping,
+                FILE_MAP_WRITE,
+                (offset >> 32) as u32,
+                offset as u32,
+                0,
+            )
+        };
 
         if ptr.is_null() {
             unsafe { bindings::CloseHandle(mapping) };
@@ -299,6 +384,11 @@ impl MmapMut {
         Ok(Self { inner })
     }
 
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that:
+    /// - `len` is non-zero (returns `Err(MmapError::ZeroSize)` otherwise).
     pub unsafe fn map_anonymous_mut(len: usize) -> MmapResult<Self> {
         if len == 0 {
             return Err(MmapError::ZeroSize);
@@ -328,13 +418,23 @@ impl MmapMut {
     }
 
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped memory is not concurrently
+    /// mutated and remains valid for the lifetime of the returned slice.
     pub unsafe fn as_slice(&self) -> &[u8] {
-        self.inner.as_slice()
+        unsafe { self.inner.as_slice() }
     }
 
     #[inline]
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped memory is not aliased and
+    /// remains valid for the lifetime of the returned slice.
     pub unsafe fn as_mut_slice(&mut self) -> &mut [u8] {
-        self.inner.as_mut_slice()
+        unsafe { self.inner.as_mut_slice() }
     }
 
     pub fn flush(&self) -> MmapResult<()> {
@@ -349,11 +449,18 @@ impl MmapMut {
         self.inner.flush_async()
     }
 
-    pub fn flush_range(&self, offset: usize, len: usize) -> MmapResult<()> {
+    pub fn flush_range(
+        &self,
+        offset: usize,
+        len: usize,
+    ) -> MmapResult<()> {
         self.inner.flush_range(offset, len)
     }
 
-    pub fn advise(&self, advice: MadvFlags) -> MmapResult<()> {
+    pub fn advise(
+        &self,
+        advice: MadvFlags,
+    ) -> MmapResult<()> {
         self.inner.advise(advice)
     }
 
@@ -390,13 +497,19 @@ impl MmapMut {
         self.inner.unlock()
     }
 
-    pub fn remap(&mut self, new_len: usize) -> MmapResult<()> {
+    pub fn remap(
+        &mut self,
+        new_len: usize,
+    ) -> MmapResult<()> {
         self.inner.remap(new_len)
     }
 }
 
 impl std::fmt::Debug for MmapMut {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
         f.debug_struct("MmapMut")
             .field("addr", &self.inner.ptr)
             .field("len", &self.inner.len)
@@ -433,19 +546,40 @@ impl MmapOptions {
         Self { len, offset: 0 }
     }
 
-    pub fn offset(mut self, offset: u64) -> Self {
+    pub fn offset(
+        mut self,
+        offset: u64,
+    ) -> Self {
         self.offset = offset;
         self
     }
 
-    pub unsafe fn mmap_file(&self, file: &File) -> MmapResult<Mmap> {
+    ///
+    /// # Safety
+    ///
+    /// See [`Mmap::map_file`] for safety requirements.
+    pub unsafe fn mmap_file(
+        &self,
+        file: &File,
+    ) -> MmapResult<Mmap> {
         unsafe { Mmap::map_file(file, self.offset) }
     }
 
-    pub unsafe fn mmap_file_mut(&self, file: &File) -> MmapResult<MmapMut> {
+    ///
+    /// # Safety
+    ///
+    /// See [`MmapMut::map_file_mut`] for safety requirements.
+    pub unsafe fn mmap_file_mut(
+        &self,
+        file: &File,
+    ) -> MmapResult<MmapMut> {
         unsafe { MmapMut::map_file_mut(file, self.len, self.offset) }
     }
 
+    ///
+    /// # Safety
+    ///
+    /// See [`Mmap::map_anonymous`] for safety requirements.
     pub unsafe fn mmap_anonymous(&self) -> MmapResult<Mmap> {
         if self.len == 0 {
             return Err(MmapError::ZeroSize);
@@ -453,6 +587,10 @@ impl MmapOptions {
         unsafe { Mmap::map_anonymous(self.len) }
     }
 
+    ///
+    /// # Safety
+    ///
+    /// See [`MmapMut::map_anonymous_mut`] for safety requirements.
     pub unsafe fn mmap_anonymous_mut(&self) -> MmapResult<MmapMut> {
         if self.len == 0 {
             return Err(MmapError::ZeroSize);

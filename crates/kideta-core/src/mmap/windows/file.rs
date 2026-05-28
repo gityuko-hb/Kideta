@@ -6,12 +6,16 @@ use crate::mmap::error::{MmapError, Result};
 
 const FILE_BEGIN: u32 = 0;
 
-pub fn ftruncate(file: &std::fs::File, len: usize) -> Result<()> {
+pub fn ftruncate(
+    file: &std::fs::File,
+    len: usize,
+) -> Result<()> {
     use std::os::windows::io::AsRawHandle;
     let handle = file.as_raw_handle();
 
     let distance = len as i64;
-    let moved = unsafe { kernel32::SetFilePointerEx(handle, distance, std::ptr::null_mut(), FILE_BEGIN) };
+    let moved =
+        unsafe { kernel32::SetFilePointerEx(handle, distance, std::ptr::null_mut(), FILE_BEGIN) };
     if moved == 0 {
         let code = std::io::Error::last_os_error().raw_os_error();
         return Err(MmapError::Ftruncate { code });
