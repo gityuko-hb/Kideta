@@ -109,3 +109,12 @@ impl From<MmapError> for std::io::Error {
         std::io::Error::other(e.to_string())
     }
 }
+
+impl From<std::io::Error> for MmapError {
+    fn from(e: std::io::Error) -> Self {
+        MmapError::Map {
+            reason: e.to_string(),
+            code: e.raw_os_error(),
+        }
+    }
+}
