@@ -23,8 +23,7 @@
 //!
 //! # Usage
 //!
-//! ```rust,no_run,ignore
-//! // Unix/Linux only - Windows support pending
+//! ```rust,no_run
 //! use kideta_core::mmap::{Mmap, MmapOptions};
 //! use std::fs::OpenOptions;
 //!
@@ -51,6 +50,24 @@ pub use unix::{Mmap, MmapMut, MmapOptions};
 pub mod windows;
 #[cfg(windows)]
 pub use windows::{Mmap, MmapMut, MmapOptions};
+
+#[cfg(windows)]
+pub use windows::ftruncate;
+
+pub fn ftruncate_file(
+    file: &std::fs::File,
+    len: usize,
+) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::io::AsRawFd;
+        crate::mmap::unix::ftruncate(file.as_raw_fd(), len)
+    }
+    #[cfg(windows)]
+    {
+        crate::mmap::windows::ftruncate(file, len)
+    }
+}
 
 // Re-export common types
 pub use error::{MmapError, Result};

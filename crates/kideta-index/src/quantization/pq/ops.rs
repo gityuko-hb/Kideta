@@ -336,12 +336,12 @@ mod tests {
         let v = vec![1.0_f32; 64];
         let code = PqOps::encode(&config, &v);
         let cosine = PqOps::approx_cosine(&config, &v, &code);
-        assert!(cosine >= 0.0 && cosine <= 1.0);
+        assert!((0.0..=1.0).contains(&cosine));
     }
 
     #[test]
     fn test_encode_tiny_dimension() {
-        let vectors = vec![vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]];
+        let vectors = [vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]];
         let refs: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         let trainer = PqTrainer::new(8, 256, 5);
         let config = trainer.train(&refs);

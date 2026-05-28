@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_compute_basic() {
-        let vectors = vec![
+        let vectors = [
             vec![1.0_f32, 2.0, 3.0],
             vec![3.0_f32, 2.0, 1.0],
             vec![2.0_f32, 2.0, 2.0],
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn test_compute_single_vector() {
-        let vectors = vec![vec![10.0_f32, -5.0]];
+        let vectors = [vec![10.0_f32, -5.0]];
         let vectors_refs: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         let stats = Sq8Stats::compute(&vectors_refs);
 
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_into_config() {
-        let vectors = vec![vec![0.0_f32, 0.0_f32], vec![100.0_f32, 100.0_f32]];
+        let vectors = [vec![0.0_f32, 0.0_f32], vec![100.0_f32, 100.0_f32]];
         let vectors_refs: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         let stats = Sq8Stats::compute(&vectors_refs);
         let config = stats.into_config();
@@ -157,14 +157,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "same dimension")]
     fn test_compute_mismatched_dims() {
-        let vectors = vec![vec![1.0_f32, 2.0, 3.0], vec![1.0_f32, 2.0]];
+        let vectors = [vec![1.0_f32, 2.0, 3.0], vec![1.0_f32, 2.0]];
         let vectors_refs: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         Sq8Stats::compute(&vectors_refs);
     }
 
     #[test]
     fn test_zero_range_dimension() {
-        let vectors = vec![vec![5.0_f32, 10.0_f32], vec![5.0_f32, 20.0_f32]];
+        let vectors = [vec![5.0_f32, 10.0_f32], vec![5.0_f32, 20.0_f32]];
         let vectors_refs: Vec<_> = vectors.iter().map(|v| v.as_slice()).collect();
         let config = Sq8Stats::compute(&vectors_refs).into_config();
 
