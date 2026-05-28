@@ -122,6 +122,8 @@ pub trait VectorIndex: Send + Sync {
         match params {
             SearchParams::Flat(p) => self.search(query, p.k),
             SearchParams::Hnsw(p) => self.search(query, p.ef),
+            SearchParams::Ivf(p) => self.search(query, p.nprobe),
+            SearchParams::IvfPq(p) => self.search(query, p.nprobe),
         }
     }
 

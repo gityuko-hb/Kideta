@@ -48,6 +48,8 @@ impl HnswSearchParams {
 pub enum SearchParams {
     Flat(FlatSearchParams),
     Hnsw(HnswSearchParams),
+    Ivf(IvfSearchParams),
+    IvfPq(IvfPqSearchParams),
 }
 
 impl SearchParams {
@@ -58,6 +60,8 @@ impl SearchParams {
         match index_type {
             IndexType::Flat => SearchParams::Flat(FlatSearchParams::from_k(k)),
             IndexType::Hnsw => SearchParams::Hnsw(HnswSearchParams::from_k(k)),
+            IndexType::Ivf => SearchParams::Ivf(IvfSearchParams::from_k(k)),
+            IndexType::IvfPQ => SearchParams::IvfPq(IvfPqSearchParams::from_k(k)),
             _ => panic!("Unsupported index type for search params"),
         }
     }
@@ -66,6 +70,8 @@ impl SearchParams {
         match self {
             SearchParams::Flat(_) => IndexType::Flat,
             SearchParams::Hnsw(_) => IndexType::Hnsw,
+            SearchParams::Ivf(_) => IndexType::Ivf,
+            SearchParams::IvfPq(_) => IndexType::IvfPQ,
         }
     }
 
@@ -77,6 +83,8 @@ impl SearchParams {
             (self, other),
             (SearchParams::Flat(_), SearchParams::Flat(_))
                 | (SearchParams::Hnsw(_), SearchParams::Hnsw(_))
+                | (SearchParams::Ivf(_), SearchParams::Ivf(_))
+                | (SearchParams::IvfPq(_), SearchParams::IvfPq(_))
         )
     }
 }
@@ -102,5 +110,60 @@ impl Default for FlatSearchParams {
 impl Default for HnswSearchParams {
     fn default() -> Self {
         Self { ef: 100 }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct IvfSearchParams {
+    pub nprobe: usize,
+}
+
+impl IvfSearchParams {
+    pub fn new(nprobe: usize) -> Self {
+        Self { nprobe }
+    }
+
+    pub fn from_k(k: usize) -> Self {
+        let nprobe = k.clamp(1, 100);
+        Self { nprobe }
+    }
+
+    pub fn increase(&self) -> Self {
+        Self {
+            nprobe: self.nprobe * 2,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct IvfPqSearchParams {
+    pub nprobe: usize,
+    pub rescore_factor: usize,
+}
+
+impl IvfPqSearchParams {
+    pub fn new(
+        nprobe: usize,
+        rescore_factor: usize,
+    ) -> Self {
+        Self {
+            nprobe,
+            rescore_factor,
+        }
+    }
+
+    pub fn from_k(k: usize) -> Self {
+        let nprobe = k.clamp(1, 100);
+        Self {
+            nprobe,
+            rescore_factor: 4,
+        }
+    }
+
+    pub fn increase(&self) -> Self {
+        Self {
+            nprobe: self.nprobe * 2,
+            rescore_factor: self.rescore_factor * 2,
+        }
     }
 }
