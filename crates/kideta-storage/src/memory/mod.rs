@@ -15,6 +15,10 @@
 //! assert_eq!(tracker.get_bytes(MemoryTier::Hot), 0);
 //! ```
 
+mod policy;
+
+pub use policy::{EvictionConfig, EvictionManager, EvictionNeeded, EvictionPolicy};
+
 use std::hash::Hash;
 use std::sync::LazyLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
