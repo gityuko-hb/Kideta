@@ -44,6 +44,15 @@ mod bindings {
         pub fn UnmapViewOfFile(lpBaseAddress: *const c_void) -> i32;
         pub fn FlushViewOfFile(lpBaseAddress: *const c_void, dwNumberOfBytesToFlush: usize) -> i32;
         pub fn CloseHandle(hObject: RawHandle) -> i32;
+
+        pub fn VirtualAlloc(
+            lpAddress: *const c_void,
+            dwSize: usize,
+            flAllocationType: u32,
+            flProtect: u32,
+        ) -> *mut c_void;
+
+        pub fn VirtualFree(lpAddress: *const c_void, dwSize: usize, dwFreeType: u32) -> i32;
     }
 }
 
@@ -51,6 +60,10 @@ const FILE_MAP_READ: u32 = 4;
 const FILE_MAP_WRITE: u32 = 2;
 const PAGE_READWRITE: u32 = 0x04;
 const PAGE_READONLY: u32 = 0x02;
+
+const MEM_COMMIT: u32 = 0x00001000;
+const MEM_RESERVE: u32 = 0x00002000;
+const MEM_RELEASE: u32 = 0x00008000;
 
 pub struct Mmap {
     ptr: NonNull<c_void>,
@@ -92,6 +105,21 @@ impl Mmap {
             ptr: NonNull::new(ptr).unwrap(),
             len: file_size as usize,
             mapping_handle: mapping,
+        })
+    }
+
+    pub unsafe fn map_anonymous(len: usize) -> MmapResult<Self> {
+        if len == 0 {
+            return Err(MmapError::ZeroSize);
+        }
+        let ptr = unsafe { bindings::VirtualAlloc(std::ptr::null(), len, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE) };
+        if ptr.is_null() {
+            return Err(map_error("VirtualAlloc failed"));
+        }
+        Ok(Self {
+            ptr: NonNull::new(ptr).unwrap(),
+            len,
+            mapping_handle: std::ptr::null_mut(),
         })
     }
 
@@ -139,8 +167,12 @@ impl Mmap {
 impl Drop for Mmap {
     fn drop(&mut self) {
         unsafe {
-            bindings::UnmapViewOfFile(self.ptr.as_ptr());
-            bindings::CloseHandle(self.mapping_handle);
+            if self.mapping_handle.is_null() {
+                bindings::VirtualFree(self.ptr.as_ptr(), 0, MEM_RELEASE);
+            } else {
+                bindings::UnmapViewOfFile(self.ptr.as_ptr());
+                bindings::CloseHandle(self.mapping_handle);
+            }
         }
     }
 }
@@ -189,6 +221,21 @@ impl MmapMut {
         })
     }
 
+    pub unsafe fn map_anonymous_mut(len: usize) -> MmapResult<Self> {
+        if len == 0 {
+            return Err(MmapError::ZeroSize);
+        }
+        let mmap = unsafe { Mmap::map_anonymous(len) }?;
+        let ptr = mmap.ptr;
+        let mapping_handle = mmap.mapping_handle;
+        std::mem::forget(mmap);
+        Ok(Self {
+            ptr,
+            len,
+            mapping_handle,
+        })
+    }
+
     #[inline]
     pub fn len(&self) -> usize {
         self.len
@@ -233,8 +280,12 @@ impl MmapMut {
 impl Drop for MmapMut {
     fn drop(&mut self) {
         unsafe {
-            bindings::UnmapViewOfFile(self.ptr.as_ptr());
-            bindings::CloseHandle(self.mapping_handle);
+            if self.mapping_handle.is_null() {
+                bindings::VirtualFree(self.ptr.as_ptr(), 0, MEM_RELEASE);
+            } else {
+                bindings::UnmapViewOfFile(self.ptr.as_ptr());
+                bindings::CloseHandle(self.mapping_handle);
+            }
         }
     }
 }
@@ -260,5 +311,19 @@ impl MmapOptions {
 
     pub unsafe fn mmap_file_mut(&self, file: &File) -> MmapResult<MmapMut> {
         unsafe { MmapMut::map_file_mut(file, self.len, self.offset) }
+    }
+
+    pub unsafe fn mmap_anonymous(&self) -> MmapResult<Mmap> {
+        if self.len == 0 {
+            return Err(MmapError::ZeroSize);
+        }
+        unsafe { Mmap::map_anonymous(self.len) }
+    }
+
+    pub unsafe fn mmap_anonymous_mut(&self) -> MmapResult<MmapMut> {
+        if self.len == 0 {
+            return Err(MmapError::ZeroSize);
+        }
+        unsafe { MmapMut::map_anonymous_mut(self.len) }
     }
 }
