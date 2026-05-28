@@ -22,3 +22,5 @@ pub mod scheduler;
 pub mod scorer;
 pub mod tiered;
 pub mod trigger;
+
+pub(crate) use merger::{CompactionResult, compact_pair};
