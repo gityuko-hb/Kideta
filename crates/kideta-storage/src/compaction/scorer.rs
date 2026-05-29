@@ -7,14 +7,21 @@ pub struct CompactionScorer {
 }
 
 impl CompactionScorer {
-    pub fn new(deleted_weight: f64, size_weight: f64) -> Self {
+    pub fn new(
+        deleted_weight: f64,
+        size_weight: f64,
+    ) -> Self {
         Self {
             deleted_weight,
             size_weight,
         }
     }
 
-    pub fn score(&self, vector_count: u64, deleted_count: u64) -> f64 {
+    pub fn score(
+        &self,
+        vector_count: u64,
+        deleted_count: u64,
+    ) -> f64 {
         if vector_count == 0 {
             return 0.0;
         }
@@ -23,7 +30,10 @@ impl CompactionScorer {
         self.deleted_weight * deleted_ratio + self.size_weight * size_penalty
     }
 
-    pub fn score_segment(&self, segment: &Arc<Segment>) -> f64 {
+    pub fn score_segment(
+        &self,
+        segment: &Arc<Segment>,
+    ) -> f64 {
         let vc = segment.vector_count();
         let dc = segment.deleted_count();
         self.score(vc, dc)

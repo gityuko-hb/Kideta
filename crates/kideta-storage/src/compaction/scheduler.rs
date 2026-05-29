@@ -23,12 +23,18 @@ impl CompactionMetrics {
         }
     }
 
-    pub fn record_merge(&self, result: &CompactionResult, elapsed_ms: u64) {
+    pub fn record_merge(
+        &self,
+        result: &CompactionResult,
+        elapsed_ms: u64,
+    ) {
         self.total_merges.fetch_add(1, Ordering::Relaxed);
         self.total_vectors_merged
             .fetch_add(result.vectors_merged, Ordering::Relaxed);
-        self.total_bytes_freed.fetch_add(result.bytes_freed, Ordering::Relaxed);
-        self.last_merge_time_ms.store(elapsed_ms, Ordering::Relaxed);
+        self.total_bytes_freed
+            .fetch_add(result.bytes_freed, Ordering::Relaxed);
+        self.last_merge_time_ms
+            .store(elapsed_ms, Ordering::Relaxed);
     }
 
     pub fn total_merges(&self) -> u64 {
@@ -59,7 +65,10 @@ pub struct CompactionScheduler {
 }
 
 impl CompactionScheduler {
-    pub fn new(segment_manager: Arc<SegmentManager>, max_candidates: usize) -> Self {
+    pub fn new(
+        segment_manager: Arc<SegmentManager>,
+        max_candidates: usize,
+    ) -> Self {
         Self {
             segment_manager: Some(segment_manager),
             picker: CandidatePicker::new(CompactionScorer::default(), max_candidates),
@@ -69,7 +78,10 @@ impl CompactionScheduler {
         }
     }
 
-    pub fn run_once(&self, output_dir: &Path) -> Vec<crate::store::Result<CompactionResult>> {
+    pub fn run_once(
+        &self,
+        output_dir: &Path,
+    ) -> Vec<crate::store::Result<CompactionResult>> {
         let Some(ref manager) = self.segment_manager else {
             return Vec::new();
         };
@@ -83,7 +95,9 @@ impl CompactionScheduler {
             let seg_a = &candidates[i];
             let seg_b = &candidates[i + 1];
 
-            let seg_id = self.next_segment_id.fetch_add(1, Ordering::SeqCst);
+            let seg_id = self
+                .next_segment_id
+                .fetch_add(1, Ordering::SeqCst);
             let start = std::time::Instant::now();
 
             let result = compact_pair(seg_a, seg_b, output_dir, seg_id);
@@ -108,12 +122,16 @@ impl CompactionScheduler {
         *self.running.read().unwrap()
     }
 
-    pub fn set_running(&self, running: bool) {
+    pub fn set_running(
+        &self,
+        running: bool,
+    ) {
         *self.running.write().unwrap() = running;
     }
 
     pub fn next_segment_id(&self) -> u64 {
-        self.next_segment_id.fetch_add(1, Ordering::SeqCst)
+        self.next_segment_id
+            .fetch_add(1, Ordering::SeqCst)
     }
 }
 

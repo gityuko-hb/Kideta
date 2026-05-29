@@ -16,7 +16,7 @@ pub struct MappingCheckpoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct Manifest {
+pub struct Manifest {
     pub version: u64,
     pub segments: Vec<SegmentRef>,
     pub stats: CollectionStats,
@@ -27,7 +27,10 @@ pub(crate) struct Manifest {
 }
 
 impl Manifest {
-    pub fn new(version: u64, wal_lsn: u64) -> Self {
+    pub fn new(
+        version: u64,
+        wal_lsn: u64,
+    ) -> Self {
         Self {
             version,
             segments: Vec::new(),
@@ -38,39 +41,74 @@ impl Manifest {
         }
     }
 
-    pub fn add_segment(&mut self, segment: SegmentRef) {
+    pub fn add_segment(
+        &mut self,
+        segment: SegmentRef,
+    ) {
         self.stats.total_vectors += segment.vector_count;
         self.stats.total_deleted += segment.deleted_count;
         self.stats.total_bytes += segment.file_size_bytes;
         self.segments.push(segment);
     }
 
-    pub fn remove_segment(&mut self, segment_id: u64) {
-        if let Some(pos) = self.segments.iter().position(|s| s.id == segment_id) {
+    pub fn remove_segment(
+        &mut self,
+        segment_id: u64,
+    ) {
+        if let Some(pos) = self
+            .segments
+            .iter()
+            .position(|s| s.id == segment_id)
+        {
             let removed = self.segments.remove(pos);
-            self.stats.total_vectors = self.stats.total_vectors.saturating_sub(removed.vector_count);
-            self.stats.total_deleted = self.stats.total_deleted.saturating_sub(removed.deleted_count);
-            self.stats.total_bytes = self.stats.total_bytes.saturating_sub(removed.file_size_bytes);
+            self.stats.total_vectors = self
+                .stats
+                .total_vectors
+                .saturating_sub(removed.vector_count);
+            self.stats.total_deleted = self
+                .stats
+                .total_deleted
+                .saturating_sub(removed.deleted_count);
+            self.stats.total_bytes = self
+                .stats
+                .total_bytes
+                .saturating_sub(removed.file_size_bytes);
         }
     }
 
-    pub fn remove_segments(&mut self, segment_ids: &[u64]) {
+    pub fn remove_segments(
+        &mut self,
+        segment_ids: &[u64],
+    ) {
         for id in segment_ids {
             self.remove_segment(*id);
         }
     }
 
+    #[allow(dead_code)]
     pub fn segment_count(&self) -> usize {
         self.segments.len()
     }
 
-    pub fn update_segment(&mut self, segment_id: u64, f: impl FnOnce(&mut SegmentRef)) {
-        if let Some(segment) = self.segments.iter_mut().find(|s| s.id == segment_id) {
+    pub fn update_segment(
+        &mut self,
+        segment_id: u64,
+        f: impl FnOnce(&mut SegmentRef),
+    ) {
+        if let Some(segment) = self
+            .segments
+            .iter_mut()
+            .find(|s| s.id == segment_id)
+        {
             f(segment);
         }
     }
 
-    pub fn replace_segments(&mut self, remove_ids: &[u64], add_segment: SegmentRef) {
+    pub fn replace_segments(
+        &mut self,
+        remove_ids: &[u64],
+        add_segment: SegmentRef,
+    ) {
         self.remove_segments(remove_ids);
         self.add_segment(add_segment);
     }
@@ -119,8 +157,22 @@ mod tests {
     #[test]
     fn remove_multiple_segments() {
         let mut m = Manifest::new(1, 0);
-        m.add_segment(SegmentRef::new(1, PathBuf::from("/tmp/seg1"), 100, 5, false, 1024));
-        m.add_segment(SegmentRef::new(2, PathBuf::from("/tmp/seg2"), 200, 10, false, 2048));
+        m.add_segment(SegmentRef::new(
+            1,
+            PathBuf::from("/tmp/seg1"),
+            100,
+            5,
+            false,
+            1024,
+        ));
+        m.add_segment(SegmentRef::new(
+            2,
+            PathBuf::from("/tmp/seg2"),
+            200,
+            10,
+            false,
+            2048,
+        ));
         m.remove_segments(&[1, 2]);
         assert!(m.is_empty());
     }

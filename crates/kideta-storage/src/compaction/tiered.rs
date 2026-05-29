@@ -21,7 +21,10 @@ impl TieredCompaction {
         }
     }
 
-    pub fn level_name(&self, level: usize) -> &'static str {
+    pub fn level_name(
+        &self,
+        level: usize,
+    ) -> &'static str {
         match level {
             0 => "L0",
             1 => "L1",

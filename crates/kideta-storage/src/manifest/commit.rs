@@ -10,7 +10,10 @@ pub fn manifest_filename(version: u64) -> String {
     format!("{}{:06}.json", MANIFEST_PREFIX, version)
 }
 
-pub fn manifest_path(dir: &Path, version: u64) -> PathBuf {
+pub fn manifest_path(
+    dir: &Path,
+    version: u64,
+) -> PathBuf {
     dir.join(manifest_filename(version))
 }
 
@@ -18,13 +21,17 @@ pub fn current_manifest_path(dir: &Path) -> PathBuf {
     dir.join(MANIFEST_SYMLINK)
 }
 
-pub fn atomic_commit(dir: &Path, manifest: &Manifest) -> io::Result<PathBuf> {
+pub fn atomic_commit(
+    dir: &Path,
+    manifest: &Manifest,
+) -> io::Result<PathBuf> {
     let version = manifest.version;
     let filename = manifest_filename(version);
     let temp_path = dir.join(format!("{}.tmp", filename));
     let final_path = dir.join(&filename);
 
-    let json = serde_json::to_string_pretty(manifest).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let json = serde_json::to_string_pretty(manifest)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     {
         let mut file = fs::File::create(&temp_path)?;
@@ -57,8 +64,14 @@ pub fn read_manifest(dir: &Path) -> io::Result<Manifest> {
 
     #[cfg(unix)]
     let target = if symlink.is_symlink() {
-        let link = symlink.read_link().unwrap_or_else(|_| symlink.clone());
-        if link.is_relative() { dir.join(&link) } else { link }
+        let link = symlink
+            .read_link()
+            .unwrap_or_else(|_| symlink.clone());
+        if link.is_relative() {
+            dir.join(&link)
+        } else {
+            link
+        }
     } else {
         symlink.clone()
     };
@@ -70,7 +83,10 @@ pub fn read_manifest(dir: &Path) -> io::Result<Manifest> {
     serde_json::from_str(&data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
-pub fn read_manifest_version(dir: &Path, version: u64) -> io::Result<Manifest> {
+pub fn read_manifest_version(
+    dir: &Path,
+    version: u64,
+) -> io::Result<Manifest> {
     let path = manifest_path(dir, version);
     let data = fs::read_to_string(&path)?;
     serde_json::from_str(&data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
@@ -100,7 +116,10 @@ pub fn list_manifest_versions(dir: &Path) -> io::Result<Vec<u64>> {
     Ok(versions)
 }
 
-pub fn delete_manifest_version(dir: &Path, version: u64) -> io::Result<()> {
+pub fn delete_manifest_version(
+    dir: &Path,
+    version: u64,
+) -> io::Result<()> {
     let path = manifest_path(dir, version);
     if path.exists() {
         fs::remove_file(path)?;

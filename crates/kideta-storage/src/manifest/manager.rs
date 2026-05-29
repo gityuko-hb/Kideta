@@ -1,6 +1,6 @@
 use crate::manifest::commit::{
-    atomic_commit, current_manifest_path, delete_manifest_version, list_manifest_versions, read_manifest,
-    read_manifest_version,
+    atomic_commit, current_manifest_path, delete_manifest_version, list_manifest_versions,
+    read_manifest, read_manifest_version,
 };
 use crate::manifest::manifest_data::{Manifest, MappingCheckpoint};
 use crate::manifest::segment_ref::SegmentRef;
@@ -34,7 +34,10 @@ impl ManifestManager {
         })
     }
 
-    pub fn commit(&self, mut manifest: Manifest) -> std::io::Result<Manifest> {
+    pub fn commit(
+        &self,
+        mut manifest: Manifest,
+    ) -> std::io::Result<Manifest> {
         let new_version = manifest.version + 1;
         manifest.version = new_version;
         atomic_commit(&self.dir, &manifest)?;
@@ -43,16 +46,26 @@ impl ManifestManager {
         Ok(manifest)
     }
 
-    pub fn commit_with_lsn(&self, wal_lsn: u64) -> std::io::Result<Manifest> {
+    pub fn commit_with_lsn(
+        &self,
+        wal_lsn: u64,
+    ) -> std::io::Result<Manifest> {
         let mut current = self.current.read().unwrap().clone();
         current.wal_lsn = wal_lsn;
         self.commit(current)
     }
 
-    pub fn commit_mapping_checkpoint(&self, wal_lsn: u64, mapping_file: String) -> std::io::Result<Manifest> {
+    pub fn commit_mapping_checkpoint(
+        &self,
+        wal_lsn: u64,
+        mapping_file: String,
+    ) -> std::io::Result<Manifest> {
         let mut current = self.current.read().unwrap().clone();
         current.wal_lsn = wal_lsn;
-        current.mapping_checkpoint = MappingCheckpoint { wal_lsn, mapping_file };
+        current.mapping_checkpoint = MappingCheckpoint {
+            wal_lsn,
+            mapping_file,
+        };
         self.commit(current)
     }
 
@@ -60,11 +73,18 @@ impl ManifestManager {
         self.current.read().unwrap().clone()
     }
 
-    pub fn get_version(&self, version: u64) -> std::io::Result<Manifest> {
+    pub fn get_version(
+        &self,
+        version: u64,
+    ) -> std::io::Result<Manifest> {
         read_manifest_version(&self.dir, version)
     }
 
-    pub fn add_segment(&self, segment: SegmentRef, wal_lsn: u64) -> std::io::Result<Manifest> {
+    pub fn add_segment(
+        &self,
+        segment: SegmentRef,
+        wal_lsn: u64,
+    ) -> std::io::Result<Manifest> {
         let mut current = self.get_current();
         current.add_segment(segment);
         current.wal_lsn = wal_lsn;
@@ -95,7 +115,11 @@ impl ManifestManager {
         self.commit(current)
     }
 
-    pub fn remove_segments(&self, segment_ids: &[u64], wal_lsn: u64) -> std::io::Result<Manifest> {
+    pub fn remove_segments(
+        &self,
+        segment_ids: &[u64],
+        wal_lsn: u64,
+    ) -> std::io::Result<Manifest> {
         let mut current = self.get_current();
         current.remove_segments(segment_ids);
         current.wal_lsn = wal_lsn;
@@ -122,7 +146,10 @@ impl ManifestManager {
         Ok(())
     }
 
-    pub fn set_max_versions(&mut self, max: usize) {
+    pub fn set_max_versions(
+        &mut self,
+        max: usize,
+    ) {
         self.max_versions = max;
     }
 }
@@ -184,7 +211,9 @@ mod tests {
         let manager = ManifestManager::open(&dir.path().to_path_buf()).unwrap();
         let seg = SegmentRef::new(1, PathBuf::from("/tmp/seg1"), 100, 5, false, 1024);
         manager.add_segment(seg, 10).unwrap();
-        manager.update_segment(1, |s| s.index_ready = true, 10).unwrap();
+        manager
+            .update_segment(1, |s| s.index_ready = true, 10)
+            .unwrap();
         let current = manager.get_current();
         assert!(current.segments[0].index_ready);
     }

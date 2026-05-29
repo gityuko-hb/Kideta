@@ -8,22 +8,41 @@ pub struct CandidatePicker {
 }
 
 impl CandidatePicker {
-    pub fn new(scorer: CompactionScorer, max_candidates: usize) -> Self {
-        Self { scorer, max_candidates }
+    pub fn new(
+        scorer: CompactionScorer,
+        max_candidates: usize,
+    ) -> Self {
+        Self {
+            scorer,
+            max_candidates,
+        }
     }
 
-    pub fn pick(&self, segments: &[Arc<Segment>]) -> Vec<Arc<Segment>> {
+    pub fn pick(
+        &self,
+        segments: &[Arc<Segment>],
+    ) -> Vec<Arc<Segment>> {
         let mut scored: Vec<_> = segments
             .iter()
             .map(|s: &Arc<Segment>| (s.clone(), self.scorer.score_segment(s)))
             .collect();
 
-        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-        scored.into_iter().take(self.max_candidates).map(|(s, _)| s).collect()
+        scored
+            .into_iter()
+            .take(self.max_candidates)
+            .map(|(s, _)| s)
+            .collect()
     }
 
-    pub fn pick_pairs(&self, segments: &[Arc<Segment>]) -> Vec<(Arc<Segment>, Arc<Segment>)> {
+    pub fn pick_pairs(
+        &self,
+        segments: &[Arc<Segment>],
+    ) -> Vec<(Arc<Segment>, Arc<Segment>)> {
         let candidates = self.pick(segments);
 
         let mut pairs = Vec::new();
